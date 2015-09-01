@@ -64,6 +64,9 @@ def download_comments(youtube_id, sleep=1):
                 'session_token': session_token}
 
         response = session.post(more_url, data=data)
+        if response.status_code == 503:
+            time.sleep(10)
+            continue
         json_response = json.loads(response.text)
 
         html = json_response['html_content']
@@ -82,7 +85,11 @@ def download_comments(youtube_id, sleep=1):
                 'video_id': youtube_id,
                 'can_reply': 1,
                 'session_token': session_token}
+        
         response = session.post(replies_url, data=data)
+        if response.status_code == 503:
+            time.sleep(10)
+            continue
         json_response = json.loads(response.text)
 
         html = json_response['html_content']

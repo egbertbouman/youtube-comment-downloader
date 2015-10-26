@@ -9,8 +9,9 @@ import lxml.html
 from lxml.cssselect import CSSSelector
 
 YOUTUBE_COMMENTS_URL = 'https://www.youtube.com/all_comments?v={youtube_id}'
-YOUTUBE_COMMENTS_MORE_URL = 'https://www.youtube.com/comment_ajax?action_load_comments=1&order_by_time=false&filter={youtube_id}'
-YOUTUBE_REPLIES_URL = 'https://www.youtube.com/comment_ajax?action_load_replies=1&order_by_time=false&filter={youtube_id}&tab=inbox'
+YOUTUBE_COMMENTS_ORDER_URL = 'https://www.youtube.com/comment_ajax?action_load_comments=1&order_by_time={order_by_time}&filter={youtube_id}&order_menu=true'
+YOUTUBE_COMMENTS_MORE_URL = 'https://www.youtube.com/comment_ajax?action_load_comments=1&order_by_time={order_by_time}&filter={youtube_id}'
+YOUTUBE_REPLIES_URL = 'https://www.youtube.com/comment_ajax?action_load_replies=1&order_by_time={order_by_time}&filter={youtube_id}&tab=inbox'
 
 
 def find_value(html, key, num_chars=2):
@@ -37,10 +38,10 @@ def extract_reply_cids(html):
     return [i.get('data-cid') for i in sel(tree)]
 
 
-def download_comments(youtube_id, sleep=1):
+def download_comments(youtube_id, sleep=1, order_by_time=True):
     main_url = YOUTUBE_COMMENTS_URL.format(youtube_id=youtube_id)
-    more_url = YOUTUBE_COMMENTS_MORE_URL.format(youtube_id=youtube_id)
-    replies_url = YOUTUBE_REPLIES_URL.format(youtube_id=youtube_id)
+    more_url = YOUTUBE_COMMENTS_MORE_URL.format(youtube_id=youtube_id, order_by_time=order_by_time)
+    replies_url = YOUTUBE_REPLIES_URL.format(youtube_id=youtube_id, order_by_time=order_by_time)
 
     session = requests.Session()
 
@@ -57,13 +58,22 @@ def download_comments(youtube_id, sleep=1):
     page_token = find_value(html, 'data-token')
     session_token = find_value(html, 'XSRF_TOKEN', 4)
 
+    first_iteration = True
+
     # Get remaining comments (the same as pressing the 'Show more' button)
     while page_token:
         data = {'video_id': youtube_id,
                 'page_token': page_token,
                 'session_token': session_token}
 
-        response = session.post(more_url, data=data)
+        if order_by_time and first_iteration:
+            url = YOUTUBE_COMMENTS_ORDER_URL.format(youtube_id=youtube_id, order_by_time=True)
+            data.pop('page_token')
+        else:
+            url = more_url
+        response = session.post(url, data=data)
+
+        first_iteration = False
         if response.status_code == 503:
             time.sleep(10)
             continue
@@ -85,7 +95,7 @@ def download_comments(youtube_id, sleep=1):
                 'video_id': youtube_id,
                 'can_reply': 1,
                 'session_token': session_token}
-        
+
         response = session.post(replies_url, data=data)
         if response.status_code == 503:
             time.sleep(10)
@@ -105,6 +115,7 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
+    parser.add_argument('--time', '-t', action='store_true', help='Download Youtube comments ordered by time')
 
     try:
         args = parser.parse_args(argv)
@@ -119,7 +130,7 @@ def main(argv):
         print 'Downloading Youtube comments for video:', youtube_id
         count = 0
         with open(output, 'wb') as fp:
-            for comment in download_comments(youtube_id):
+            for comment in download_comments(youtube_id, order_by_time=bool(args.time)):
                 print >> fp, json.dumps(comment)
                 count += 1
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)

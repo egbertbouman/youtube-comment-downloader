@@ -46,7 +46,7 @@ def ajax_request(session, url, params, data, retries=10, sleep=20):
             time.sleep(sleep)
 
 
-def download_comments(youtube_id, sleep=1, order_by_time=True):
+def download_comments(youtube_id, sleep=1):
     session = requests.Session()
 
     # Get Youtube page with initial comments
@@ -70,10 +70,10 @@ def download_comments(youtube_id, sleep=1, order_by_time=True):
                 'session_token': session_token}
 
         params = {'action_load_comments': 1,
-                  'order_by_time': order_by_time,
+                  'order_by_time': True,
                   'filter': youtube_id}
 
-        if order_by_time and first_iteration:
+        if first_iteration:
             params['order_menu'] = True
         else:
             data['page_token'] = page_token
@@ -101,7 +101,7 @@ def download_comments(youtube_id, sleep=1, order_by_time=True):
                 'session_token': session_token}
 
         params = {'action_load_replies': 1,
-                  'order_by_time': order_by_time,
+                  'order_by_time': True,
                   'filter': youtube_id,
                   'tab': 'inbox'}
 
@@ -123,7 +123,6 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
-    parser.add_argument('--timeorder', '-t', action='store_true', help='Download Youtube comments ordered by time')
 
     try:
         args = parser.parse_args(argv)
@@ -138,7 +137,7 @@ def main(argv):
         print 'Downloading Youtube comments for video:', youtube_id
         count = 0
         with open(output, 'wb') as fp:
-            for comment in download_comments(youtube_id, order_by_time=bool(args.timeorder)):
+            for comment in download_comments(youtube_id):
                 print >> fp, json.dumps(comment)
                 count += 1
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)

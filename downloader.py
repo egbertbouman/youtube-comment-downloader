@@ -13,6 +13,8 @@ from lxml.cssselect import CSSSelector
 YOUTUBE_COMMENTS_URL = 'https://www.youtube.com/all_comments?v={youtube_id}'
 YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_ajax'
 
+USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'
+
 
 def find_value(html, key, num_chars=2):
     pos_begin = html.find(key) + len(key) + num_chars
@@ -50,6 +52,7 @@ def ajax_request(session, url, params, data, retries=10, sleep=20):
 
 def download_comments(youtube_id, sleep=1):
     session = requests.Session()
+    session.headers['User-Agent'] = USER_AGENT
 
     # Get Youtube page with initial comments
     response = session.get(YOUTUBE_COMMENTS_URL.format(youtube_id=youtube_id))

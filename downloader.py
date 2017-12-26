@@ -12,6 +12,11 @@ import lxml.html
 
 from lxml.cssselect import CSSSelector
 
+
+import pandas as pd
+from collections import OrderedDict
+
+
 YOUTUBE_COMMENTS_URL = 'https://www.youtube.com/all_comments?v={youtube_id}'
 YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_ajax'
 
@@ -30,16 +35,26 @@ def extract_comments(html):
     text_sel = CSSSelector('.comment-text-content')
     time_sel = CSSSelector('.time')
     author_sel = CSSSelector('.user-name')
-
+    vote_sel = CSSSelector('.like-count')
+    # with open("output1.html", "w") as file:
+    #     file.write(str(html))
+#vote-count-left
     for item in item_sel(tree):
+        # print(a)
         yield {'cid': item.get('data-cid'),
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
-               'author': author_sel(item)[0].text_content()}
+               'author': author_sel(item)[0].text_content(),
+               'like-count': vote_sel(item)[0].text_content()}
+
+               
+            #    'vote': vote_sel(item)[0].text_content()
+        
 
 
 def extract_reply_cids(html):
     tree = lxml.html.fromstring(html)
+    
     sel = CSSSelector('.comment-replies-header > .load-comments')
     return [i.get('data-cid') for i in sel(tree)]
 
@@ -62,6 +77,7 @@ def download_comments(youtube_id, sleep=1):
     response = session.get(YOUTUBE_COMMENTS_URL.format(youtube_id=youtube_id))
     html = response.text
     reply_cids = extract_reply_cids(html)
+    
 
     ret_cids = []
     for comment in extract_comments(html):
@@ -79,7 +95,7 @@ def download_comments(youtube_id, sleep=1):
                 'session_token': session_token}
 
         params = {'action_load_comments': 1,
-                  'order_by_time': True,
+                  'order_by_time': False,
                   'filter': youtube_id}
 
         if first_iteration:
@@ -144,13 +160,22 @@ def main(argv):
             raise ValueError('you need to specify a Youtube ID and an output filename')
 
         print('Downloading Youtube comments for video:', youtube_id)
+
+
         count = 0
-        with open(output, 'w') as fp:
-            for comment in download_comments(youtube_id):
-                print(json.dumps(comment), file=fp)
-                count += 1
-                sys.stdout.write('Downloaded %d comment(s)\r' % count)
-                sys.stdout.flush()
+        l = []
+
+        for comment in download_comments(youtube_id):
+            l.append(comment)
+            count += 1
+
+        df = pd.DataFrame(l)
+        # df.to_csv(fp, index=False , encoding = 'utf_8_sig')
+        writer = pd.ExcelWriter(output)
+        df.to_excel(writer,'Sheet1')
+        writer.save()       
+            
+
         print('\nDone!')
 
 

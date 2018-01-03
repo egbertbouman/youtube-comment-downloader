@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# ////////
 from __future__ import print_function
 
 import os
@@ -143,46 +144,30 @@ def download_comments(youtube_id, sleep=1):
         time.sleep(sleep)
 
 
-def main(argv):
-    parser = argparse.ArgumentParser(add_help=False, description=('Download Youtube comments without using the Youtube API'))
-    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
-    parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
-
+def yt(v_id):
     try:
-        args = parser.parse_args(argv)
-
-        youtube_id = args.youtubeid
-        output = args.output
-
-        if not youtube_id or not output:
-            parser.print_usage()
-            raise ValueError('you need to specify a Youtube ID and an output filename')
-
-        print('Downloading Youtube comments for video:', youtube_id)
-
-
+        youtube_id = v_id
         count = 0
         l = []
 
         for comment in download_comments(youtube_id):
             l.append(comment)
             count += 1
-
+            # print(count)
+            if count > 10 :
+                break
+        print('already in cl')
         df = pd.DataFrame(l)
         # df.to_csv(fp, index=False , encoding = 'utf_8_sig')
-        writer = pd.ExcelWriter(output)
-        df.to_excel(writer,'Sheet1')
-        writer.save()       
-            
-
-        print('\nDone!')
-
+        # writer = pd.ExcelWriter(output)
+        # df.to_excel(writer,'Sheet1')
+        # writer.save()       
+        
+        # print('\nDone!')
+        # print(df)
+        return df
 
     except Exception as e:
         print('Error:', str(e))
         sys.exit(1)
 
-
-if __name__ == "__main__":
-    main(sys.argv[1:])

@@ -29,10 +29,10 @@ optional arguments:
 
 ---
 
-### Flask web usage (undone deployment)
+## Flask web usage (undone deployment)
 
 1. create virtualenv `virtualenv venv`
 2. activate venv `source venv/bin/activate`
-3. download package `pip install -r 'requirements.txt'`
+3. install package `pip install -r 'requirements.txt'`
 4. `python manage.py runserver`
 

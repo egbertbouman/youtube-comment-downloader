@@ -26,3 +26,13 @@ optional arguments:
   --output OUTPUT, -o OUTPUT
                         Output filename (output format is line delimited JSON)
 ```
+
+---
+
+### Flask web usage (undone deployment)
+
+1. create virtualenv `virtualenv venv`
+2. activate venv `source venv/bin/activate`
+3. download package `pip install -r 'requirements.txt'`
+4. `python manage.py runserver`
+

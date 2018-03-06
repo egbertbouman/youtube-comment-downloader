@@ -132,12 +132,14 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
+    parser.add_argument('--limit', '-l', type=int, help='Limit the number of comments')
 
     try:
         args = parser.parse_args(argv)
 
         youtube_id = args.youtubeid
         output = args.output
+        limit = args.limit
 
         if not youtube_id or not output:
             parser.print_usage()
@@ -151,6 +153,8 @@ def main(argv):
                 count += 1
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)
                 sys.stdout.flush()
+                if limit and count >= limit:
+                    break
         print('\nDone!')
 
 

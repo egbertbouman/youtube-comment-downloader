@@ -35,7 +35,9 @@ def extract_comments(html):
         yield {'cid': item.get('data-cid'),
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
-               'author': author_sel(item)[0].text_content()}
+               'author': author_sel(item)[0].text_content(),
+               'username': author_sel(item)[0].get('href').split('/')[2]
+               }
 
 
 def extract_reply_cids(html):

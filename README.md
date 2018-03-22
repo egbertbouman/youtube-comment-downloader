@@ -9,9 +9,7 @@ Simple script for downloading Youtube comments without using the Youtube API. Th
 
 The python packages can be installed with
 
-    pip install requests
-    pip install lxml
-    pip install cssselect
+    pip install -r requirements.txt
 
 ### Usage
 ```

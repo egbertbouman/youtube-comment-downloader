@@ -9,6 +9,7 @@ import json
 import requests
 import argparse
 import lxml.html
+import io
 
 from lxml.cssselect import CSSSelector
 
@@ -147,9 +148,9 @@ def main(argv):
 
         print('Downloading Youtube comments for video:', youtube_id)
         count = 0
-        with open(output, 'w') as fp:
+        with io.open(output, 'w', encoding='utf8') as fp:
             for comment in download_comments(youtube_id):
-                print(json.dumps(comment), file=fp)
+                print(json.dumps(comment, ensure_ascii=False), file=fp)
                 count += 1
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)
                 sys.stdout.flush()

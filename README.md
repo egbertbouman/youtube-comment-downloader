@@ -26,3 +26,8 @@ optional arguments:
   --output OUTPUT, -o OUTPUT
                         Output filename (output format is line delimited JSON)
 ```
+
+### Example 
+```python
+python2 downloader.py -y 32sYGCOYJUM -o downloader_output.json
+```

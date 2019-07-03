@@ -150,7 +150,8 @@ def main(argv):
         count = 0
         with io.open(output, 'w', encoding='utf8') as fp:
             for comment in download_comments(youtube_id):
-                print(json.dumps(comment, ensure_ascii=False), file=fp)
+                comment_json = json.dumps(comment, ensure_ascii=False)
+                print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
                 count += 1
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)
                 sys.stdout.flush()

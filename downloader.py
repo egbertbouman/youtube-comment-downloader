@@ -2,66 +2,112 @@
 
 from __future__ import print_function
 
+import io
+import json
 import os
 import sys
 import time
-import json
-import requests
+
 import argparse
 import lxml.html
-import io
-
+import requests
 from lxml.cssselect import CSSSelector
 
-YOUTUBE_COMMENTS_URL = 'https://www.youtube.com/all_comments?v={youtube_id}'
-YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_ajax'
+YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
+YOUTUBE_COMMENTS_AJAX_URL_OLD = 'https://www.youtube.com/comment_ajax'
+YOUTUBE_COMMENTS_AJAX_URL_NEW = 'https://www.youtube.com/comment_service_ajax'
 
-USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
 
 
-def find_value(html, key, num_chars=2):
+def find_value(html, key, num_chars=2, separator='"'):
     pos_begin = html.find(key) + len(key) + num_chars
-    pos_end = html.find('"', pos_begin)
+    pos_end = html.find(separator, pos_begin)
     return html[pos_begin: pos_end]
 
 
-def extract_comments(html):
-    tree = lxml.html.fromstring(html)
-    item_sel = CSSSelector('.comment-item')
-    text_sel = CSSSelector('.comment-text-content')
-    time_sel = CSSSelector('.time')
-    author_sel = CSSSelector('.user-name')
-
-    for item in item_sel(tree):
-        yield {'cid': item.get('data-cid'),
-               'text': text_sel(item)[0].text_content(),
-               'time': time_sel(item)[0].text_content().strip(),
-               'author': author_sel(item)[0].text_content()}
-
-
-def extract_reply_cids(html):
-    tree = lxml.html.fromstring(html)
-    sel = CSSSelector('.comment-replies-header > .load-comments')
-    return [i.get('data-cid') for i in sel(tree)]
-
-
-def ajax_request(session, url, params, data, retries=10, sleep=20):
+def ajax_request(session, url, params=None, data=None, headers=None, retries=5, sleep=20):
     for _ in range(retries):
-        response = session.post(url, params=params, data=data)
+        response = session.post(url, params=params, data=data, headers=headers)
         if response.status_code == 200:
-            response_dict = json.loads(response.text)
-            return response_dict.get('page_token', None), response_dict['html_content']
+            return response.json()
         else:
             time.sleep(sleep)
 
 
-def download_comments(youtube_id, sleep=1):
+def download_comments(youtube_id, sleep=.5):
+    if 'liveStreamability' in requests.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id)).text:
+        print('Live stream detected! Not all comments may be downloaded.')
+        return download_comments_new_api(youtube_id, sleep)
+    return download_comments_old_api(youtube_id, sleep)
+
+
+def download_comments_new_api(youtube_id, sleep=1):
+    # Use the new youtube API to download some comments
+    session = requests.Session()
+    session.headers['User-Agent'] = USER_AGENT
+
+    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+    html = response.text
+    session_token = find_value(html, 'XSRF_TOKEN', 3)
+
+    data = json.loads(find_value(html, 'window["ytInitialData"] = ', 0, '\n').rstrip(';'))
+    ncd = data['contents']['twoColumnWatchNextResults']['results']['results']['contents'][2] \
+        ['itemSectionRenderer']['continuations'][0]['nextContinuationData']
+    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
+
+    while continuations:
+        continuation, itct = continuations.pop()
+        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL_NEW,
+                                params={'action_get_comments': 1,
+                                        'pbj': 1,
+                                        'ctoken': continuation,
+                                        'continuation': continuation,
+                                        'itct': itct},
+                                data={'session_token': session_token},
+                                headers={'X-YouTube-Client-Name': '1',
+                                         'X-YouTube-Client-Version': '2.20200207.03.01'})
+
+        if not response:
+            break
+
+        response = response['response']
+        if 'error' in response:
+            raise RuntimeError('Error returned from server')
+
+        if 'itemSectionContinuation' not in response['continuationContents']:
+            comments = [content['commentRenderer']
+                        for content in response['continuationContents']['commentRepliesContinuation']['contents']]
+        else:
+            comments = [content['commentThreadRenderer']['comment']['commentRenderer']
+                        for content in response['continuationContents']['itemSectionContinuation']['contents']]
+            for content in response['continuationContents']['itemSectionContinuation']['contents']:
+                if 'replies' in content['commentThreadRenderer']:
+                    for item in content['commentThreadRenderer']['replies']['commentRepliesRenderer']['continuations']:
+                        ncd = item['nextContinuationData']
+                        continuations.append((ncd['continuation'], ncd['clickTrackingParams']))
+            for item in response['continuationContents']['itemSectionContinuation'].get('continuations', []):
+                ncd = item['nextContinuationData']
+                continuations.append((ncd['continuation'], ncd['clickTrackingParams']))
+
+        for comment in comments:
+            yield {'cid': comment['commentId'],
+                   'text': comment['contentText']['runs'][0]['text'],
+                   'time': comment['publishedTimeText']['runs'][0]['text'],
+                   'author': comment.get('authorText', {}).get('simpleText', '')}
+
+        time.sleep(sleep)
+
+
+def download_comments_old_api(youtube_id, sleep=1):
+    # Use the old youtube API to download all comments (does not work for live streams)
     session = requests.Session()
     session.headers['User-Agent'] = USER_AGENT
 
     # Get Youtube page with initial comments
-    response = session.get(YOUTUBE_COMMENTS_URL.format(youtube_id=youtube_id))
+    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
     html = response.text
+
     reply_cids = extract_reply_cids(html)
 
     ret_cids = []
@@ -70,7 +116,7 @@ def download_comments(youtube_id, sleep=1):
         yield comment
 
     page_token = find_value(html, 'data-token')
-    session_token = find_value(html, 'XSRF_TOKEN', 4)
+    session_token = find_value(html, 'XSRF_TOKEN', 3)
 
     first_iteration = True
 
@@ -88,11 +134,11 @@ def download_comments(youtube_id, sleep=1):
         else:
             data['page_token'] = page_token
 
-        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
+        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL_OLD, params, data)
         if not response:
             break
 
-        page_token, html = response
+        page_token, html = response.get('page_token', None), response['html_content']
 
         reply_cids += extract_reply_cids(html)
         for comment in extract_comments(html):
@@ -115,17 +161,37 @@ def download_comments(youtube_id, sleep=1):
                   'filter': youtube_id,
                   'tab': 'inbox'}
 
-        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL, params, data)
+        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL_OLD, params, data)
         if not response:
             break
 
-        _, html = response
+        html = response['html_content']
 
         for comment in extract_comments(html):
             if comment['cid'] not in ret_cids:
                 ret_cids.append(comment['cid'])
                 yield comment
         time.sleep(sleep)
+
+
+def extract_comments(html):
+    tree = lxml.html.fromstring(html)
+    item_sel = CSSSelector('.comment-item')
+    text_sel = CSSSelector('.comment-text-content')
+    time_sel = CSSSelector('.time')
+    author_sel = CSSSelector('.user-name')
+
+    for item in item_sel(tree):
+        yield {'cid': item.get('data-cid'),
+               'text': text_sel(item)[0].text_content(),
+               'time': time_sel(item)[0].text_content().strip(),
+               'author': author_sel(item)[0].text_content()}
+
+
+def extract_reply_cids(html):
+    tree = lxml.html.fromstring(html)
+    sel = CSSSelector('.comment-replies-header > .load-comments')
+    return [i.get('data-cid') for i in sel(tree)]
 
 
 def main(argv):
@@ -158,7 +224,6 @@ def main(argv):
                 if limit and count >= limit:
                     break
         print('\nDone!')
-
 
     except Exception as e:
         print('Error:', str(e))

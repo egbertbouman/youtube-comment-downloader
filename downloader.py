@@ -94,7 +94,8 @@ def download_comments_new_api(youtube_id, sleep=1):
             yield {'cid': comment['commentId'],
                    'text': comment['contentText']['runs'][0]['text'],
                    'time': comment['publishedTimeText']['runs'][0]['text'],
-                   'author': comment.get('authorText', {}).get('simpleText', '')}
+                   'author': comment.get('authorText', {}).get('simpleText', ''),
+                   'votes': int(comment.get('voteCount', {}).get('simpleText', 0))}
 
         time.sleep(sleep)
 
@@ -180,12 +181,14 @@ def extract_comments(html):
     text_sel = CSSSelector('.comment-text-content')
     time_sel = CSSSelector('.time')
     author_sel = CSSSelector('.user-name')
+    vote_sel = CSSSelector('.like-count')
 
     for item in item_sel(tree):
         yield {'cid': item.get('data-cid'),
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
-               'author': author_sel(item)[0].text_content()}
+               'author': author_sel(item)[0].text_content(),
+               'votes': int(vote_sel(item)[0].text_content())}
 
 
 def extract_reply_cids(html):

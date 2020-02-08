@@ -26,3 +26,6 @@ optional arguments:
   --output OUTPUT, -o OUTPUT
                         Output filename (output format is line delimited JSON)
 ```
+
+For Youtube IDs starting with - (dash) you will need to run the script with:
+`-y=-idwithdash` or `--youtubeid=-idwithdash`

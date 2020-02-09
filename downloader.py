@@ -35,7 +35,7 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
             time.sleep(sleep)
 
 
-def download_comments(youtube_id, sleep=.5):
+def download_comments(youtube_id, sleep=.1):
     if 'liveStreamability' in requests.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id)).text:
         print('Live stream detected! Not all comments may be downloaded.')
         return download_comments_new_api(youtube_id, sleep)

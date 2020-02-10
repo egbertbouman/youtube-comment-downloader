@@ -31,6 +31,8 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
         response = session.post(url, params=params, data=data, headers=headers)
         if response.status_code == 200:
             return response.json()
+        if response.status_code == 413:
+            return {}
         else:
             time.sleep(sleep)
 
@@ -52,8 +54,8 @@ def download_comments_new_api(youtube_id, sleep=1):
     session_token = find_value(html, 'XSRF_TOKEN', 3)
 
     data = json.loads(find_value(html, 'window["ytInitialData"] = ', 0, '\n').rstrip(';'))
-    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])
-                     for ncd in search_dict(data, 'nextContinuationData')]
+    ncd = next(search_dict(data, 'nextContinuationData'))
+    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
 
     while continuations:
         continuation, itct = continuations.pop()
@@ -69,20 +71,19 @@ def download_comments_new_api(youtube_id, sleep=1):
 
         if not response:
             break
+        if list(search_dict(response, 'externalErrorMessage')):
+            raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
 
-        response = response['response']
-        if 'error' in response:
-            raise RuntimeError('Error returned from server')
-
-        continuations += [(ncd['continuation'], ncd['clickTrackingParams'])
-                          for ncd in search_dict(response, 'nextContinuationData')]
+        # Ordering matters. The newest continuations should go first.
+        continuations = [(ncd['continuation'], ncd['clickTrackingParams'])
+                         for ncd in search_dict(response, 'nextContinuationData')] + continuations
 
         for comment in search_dict(response, 'commentRenderer'):
             yield {'cid': comment['commentId'],
                    'text': comment['contentText']['runs'][0]['text'],
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
-                   'votes': int(comment.get('voteCount', {}).get('simpleText', 0)),
+                   'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                    'photo': comment['authorThumbnail']['thumbnails'][-1]['url']}
 
         time.sleep(sleep)
@@ -189,7 +190,7 @@ def extract_comments(html):
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
                'author': author_sel(item)[0].text_content(),
-               'votes': int(vote_sel(item)[0].text_content()),
+               'votes': vote_sel(item)[0].text_content(),
                'photo': photo_sel(item)[0].get('src')}
 
 

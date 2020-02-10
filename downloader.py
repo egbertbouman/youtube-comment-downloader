@@ -52,8 +52,10 @@ def download_comments_new_api(youtube_id, sleep=1):
     session_token = find_value(html, 'XSRF_TOKEN', 3)
 
     data = json.loads(find_value(html, 'window["ytInitialData"] = ', 0, '\n').rstrip(';'))
-    ncd = data['contents']['twoColumnWatchNextResults']['results']['results']['contents'][2] \
-        ['itemSectionRenderer']['continuations'][0]['nextContinuationData']
+    for content_dict in data['contents']['twoColumnWatchNextResults']['results']['results']['contents']:
+        if 'itemSectionRenderer' in content_dict:
+            ncd = content_dict['itemSectionRenderer']['continuations'][0]['nextContinuationData']
+            break
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
 
     while continuations:

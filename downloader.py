@@ -52,11 +52,8 @@ def download_comments_new_api(youtube_id, sleep=1):
     session_token = find_value(html, 'XSRF_TOKEN', 3)
 
     data = json.loads(find_value(html, 'window["ytInitialData"] = ', 0, '\n').rstrip(';'))
-    for content_dict in data['contents']['twoColumnWatchNextResults']['results']['results']['contents']:
-        if 'itemSectionRenderer' in content_dict:
-            ncd = content_dict['itemSectionRenderer']['continuations'][0]['nextContinuationData']
-            break
-    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
+    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])
+                     for ncd in search_dict(data, 'nextContinuationData')]
 
     while continuations:
         continuation, itct = continuations.pop()
@@ -77,22 +74,10 @@ def download_comments_new_api(youtube_id, sleep=1):
         if 'error' in response:
             raise RuntimeError('Error returned from server')
 
-        if 'itemSectionContinuation' not in response['continuationContents']:
-            comments = [content['commentRenderer']
-                        for content in response['continuationContents']['commentRepliesContinuation']['contents']]
-        else:
-            comments = [content['commentThreadRenderer']['comment']['commentRenderer']
-                        for content in response['continuationContents']['itemSectionContinuation']['contents']]
-            for content in response['continuationContents']['itemSectionContinuation']['contents']:
-                if 'replies' in content['commentThreadRenderer']:
-                    for item in content['commentThreadRenderer']['replies']['commentRepliesRenderer']['continuations']:
-                        ncd = item['nextContinuationData']
-                        continuations.append((ncd['continuation'], ncd['clickTrackingParams']))
-            for item in response['continuationContents']['itemSectionContinuation'].get('continuations', []):
-                ncd = item['nextContinuationData']
-                continuations.append((ncd['continuation'], ncd['clickTrackingParams']))
+        continuations += [(ncd['continuation'], ncd['clickTrackingParams'])
+                          for ncd in search_dict(response, 'nextContinuationData')]
 
-        for comment in comments:
+        for comment in search_dict(response, 'commentRenderer'):
             yield {'cid': comment['commentId'],
                    'text': comment['contentText']['runs'][0]['text'],
                    'time': comment['publishedTimeText']['runs'][0]['text'],
@@ -101,6 +86,18 @@ def download_comments_new_api(youtube_id, sleep=1):
                    'photo': comment['authorThumbnail']['thumbnails'][-1]['url']}
 
         time.sleep(sleep)
+
+
+def search_dict(partial, key):
+    if isinstance(partial, dict):
+        for k, v in partial.items():
+            if k == key:
+                yield v
+            else:
+                yield from search_dict(v, key)
+    elif isinstance(partial, list):
+        for i in partial:
+            yield from search_dict(i, key)
 
 
 def download_comments_old_api(youtube_id, sleep=1):

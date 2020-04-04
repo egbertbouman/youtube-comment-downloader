@@ -80,7 +80,7 @@ def download_comments_new_api(youtube_id, sleep=1):
 
         for comment in search_dict(response, 'commentRenderer'):
             yield {'cid': comment['commentId'],
-                   'text': comment['contentText']['runs'][0]['text'],
+                   'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
                    'votes': comment.get('voteCount', {}).get('simpleText', '0'),

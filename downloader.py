@@ -95,10 +95,12 @@ def search_dict(partial, key):
             if k == key:
                 yield v
             else:
-                yield from search_dict(v, key)
+                for o in search_dict(v, key):
+                     yield o
     elif isinstance(partial, list):
         for i in partial:
-            yield from search_dict(i, key)
+            for o in search_dict(i, key):
+                yield o
 
 
 def download_comments_old_api(youtube_id, sleep=1):

@@ -31,7 +31,7 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
         response = session.post(url, params=params, data=data, headers=headers)
         if response.status_code == 200:
             return response.json()
-        if response.status_code == 413:
+        if response.status_code in [403, 413]:
             return {}
         else:
             time.sleep(sleep)
@@ -223,6 +223,8 @@ def main(argv):
         print('Downloading Youtube comments for video:', youtube_id)
         count = 0
         with io.open(output, 'w', encoding='utf8') as fp:
+            sys.stdout.write('Downloaded %d comment(s)\r' % count)
+            sys.stdout.flush()
             for comment in download_comments(youtube_id):
                 comment_json = json.dumps(comment, ensure_ascii=False)
                 print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)

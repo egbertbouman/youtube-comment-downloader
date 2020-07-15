@@ -54,8 +54,10 @@ def download_comments_new_api(youtube_id, sleep=1):
     session_token = find_value(html, 'XSRF_TOKEN', 3)
 
     data = json.loads(find_value(html, 'window["ytInitialData"] = ', 0, '\n').rstrip(';'))
-    renderer = next(search_dict(data, 'itemSectionRenderer'), {})
-    ncd = next(search_dict(renderer, 'nextContinuationData'))
+    for renderer in search_dict(data, 'itemSectionRenderer'):
+        ncd = next(search_dict(renderer, 'nextContinuationData'), None)
+        if ncd:
+            break
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
 
     while continuations:

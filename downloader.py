@@ -80,7 +80,9 @@ def download_comments_new_api(youtube_id, sleep=1):
                          for ncd in search_dict(response, 'nextContinuationData')] + continuations
 
         for comment in search_dict(response, 'commentRenderer'):
-            yield {'cid': comment['commentId'],
+            cid = comment['commentId']
+            yield {'cid': cid,
+                   'parent_id': cid.split('.')[0] if '.' in cid else None,
                    'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
@@ -189,7 +191,9 @@ def extract_comments(html):
     photo_sel = CSSSelector('.user-photo')
 
     for item in item_sel(tree):
-        yield {'cid': item.get('data-cid'),
+        cid = item.get('data-cid')
+        yield {'cid': cid,
+               'parent_id': cid.split('.')[0] if '.' in cid else None,
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
                'author': author_sel(item)[0].text_content(),

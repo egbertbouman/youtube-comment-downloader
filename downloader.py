@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -210,6 +210,7 @@ def main(argv):
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
     parser.add_argument('--limit', '-l', type=int, help='Limit the number of comments')
 
+    start_time = time.time()
     try:
         args = parser.parse_args(argv)
 
@@ -220,6 +221,11 @@ def main(argv):
         if not youtube_id or not output:
             parser.print_usage()
             raise ValueError('you need to specify a Youtube ID and an output filename')
+
+        if '/' in output:
+            outdir = output.rsplit('/', maxsplit=1)[0]
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
 
         print('Downloading Youtube comments for video:', youtube_id)
         count = 0
@@ -234,7 +240,8 @@ def main(argv):
                 sys.stdout.flush()
                 if limit and count >= limit:
                     break
-        print('\nDone!')
+        sys.stdout.write('Downloaded %d comment(s)' % count)
+        print('\n[{:.2f} seconds] Done!'.format(time.time() - start_time))
 
     except Exception as e:
         print('Error:', str(e))

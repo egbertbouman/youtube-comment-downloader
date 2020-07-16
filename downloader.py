@@ -86,6 +86,7 @@ def download_comments_new_api(youtube_id, sleep=1):
                    'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
+                   'channel': comment['authorEndpoint']['browseEndpoint']['browseId'],
                    'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                    'photo': comment['authorThumbnail']['thumbnails'][-1]['url']}
 
@@ -195,6 +196,7 @@ def extract_comments(html):
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
                'author': author_sel(item)[0].text_content(),
+               'channel': item[0].get('href'),
                'votes': vote_sel(item)[0].text_content() if len(vote_sel(item)) > 0 else 0,
                'photo': photo_sel(item)[0].get('src')}
 

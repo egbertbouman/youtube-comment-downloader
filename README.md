@@ -27,7 +27,10 @@ optional arguments:
                         Output filename (output format is line delimited JSON)
 ```
 
-### Example 
-```python
-python2 downloader.py -y 32sYGCOYJUM -o downloader_output.json
+For example:
 ```
+python downloader.py --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
+```
+
+For Youtube IDs starting with - (dash) you will need to run the script with:
+`-y=-idwithdash` or `--youtubeid=-idwithdash`

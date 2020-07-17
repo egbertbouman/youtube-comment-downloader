@@ -196,7 +196,7 @@ def extract_comments(html):
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
                'author': author_sel(item)[0].text_content(),
-               'channel': item[0].get('href'),
+               'channel': item[0].get('href').replace('/channel/','').strip(),
                'votes': vote_sel(item)[0].text_content() if len(vote_sel(item)) > 0 else 0,
                'photo': photo_sel(item)[0].get('src')}
 

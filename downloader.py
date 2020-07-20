@@ -225,11 +225,17 @@ def main(argv):
             parser.print_usage()
             raise ValueError('you need to specify a Youtube ID and an output filename')
 
+        if os.sep in output:
+            outdir = os.path.dirname(output)
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+
         print('Downloading Youtube comments for video:', youtube_id)
         count = 0
         with io.open(output, 'w', encoding='utf8') as fp:
             sys.stdout.write('Downloaded %d comment(s)\r' % count)
             sys.stdout.flush()
+            start_time = time.time()
             for comment in download_comments(youtube_id):
                 comment_json = json.dumps(comment, ensure_ascii=False)
                 print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
@@ -238,7 +244,7 @@ def main(argv):
                 sys.stdout.flush()
                 if limit and count >= limit:
                     break
-        print('\nDone!')
+        print('\n[{:.2f} seconds] Done!'.format(time.time() - start_time))
 
     except Exception as e:
         print('Error:', str(e))

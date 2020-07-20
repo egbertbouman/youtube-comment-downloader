@@ -82,9 +82,7 @@ def download_comments_new_api(youtube_id, sleep=1):
                          for ncd in search_dict(response, 'nextContinuationData')] + continuations
 
         for comment in search_dict(response, 'commentRenderer'):
-            cid = comment['commentId']
-            yield {'cid': cid,
-                   'parent_id': cid.split('.')[0] if '.' in cid else None,
+            yield {'cid': comment['commentId'],
                    'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
@@ -194,9 +192,7 @@ def extract_comments(html):
     photo_sel = CSSSelector('.user-photo')
 
     for item in item_sel(tree):
-        cid = item.get('data-cid')
-        yield {'cid': cid,
-               'parent_id': cid.split('.')[0] if '.' in cid else None,
+        yield {'cid': item.get('data-cid'),
                'text': text_sel(item)[0].text_content(),
                'time': time_sel(item)[0].text_content().strip(),
                'author': author_sel(item)[0].text_content(),
@@ -229,8 +225,8 @@ def main(argv):
             parser.print_usage()
             raise ValueError('you need to specify a Youtube ID and an output filename')
 
-        if '/' in output:
-            outdir = output.rsplit('/', maxsplit=1)[0]
+        if os.sep in output:
+            outdir = os.path.dirname(output)
             if not os.path.exists(outdir):
                 os.makedirs(outdir)
 

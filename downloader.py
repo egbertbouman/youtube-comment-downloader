@@ -88,7 +88,8 @@ def download_comments_new_api(youtube_id, sleep=1):
                    'author': comment.get('authorText', {}).get('simpleText', ''),
                    'channel': comment['authorEndpoint']['browseEndpoint']['browseId'],
                    'votes': comment.get('voteCount', {}).get('simpleText', '0'),
-                   'photo': comment['authorThumbnail']['thumbnails'][-1]['url']}
+                   'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
+                   'heart': next(search_dict(comment, 'isHearted'), False)}
 
         time.sleep(sleep)
 
@@ -190,6 +191,7 @@ def extract_comments(html):
     author_sel = CSSSelector('.user-name')
     vote_sel = CSSSelector('.like-count.off')
     photo_sel = CSSSelector('.user-photo')
+    heart_sel = CSSSelector('.creator-heart-background-hearted')
 
     for item in item_sel(tree):
         yield {'cid': item.get('data-cid'),
@@ -198,7 +200,8 @@ def extract_comments(html):
                'author': author_sel(item)[0].text_content(),
                'channel': item[0].get('href').replace('/channel/','').strip(),
                'votes': vote_sel(item)[0].text_content() if len(vote_sel(item)) > 0 else 0,
-               'photo': photo_sel(item)[0].get('src')}
+               'photo': photo_sel(item)[0].get('src'),
+               'heart': bool(heart_sel(item))}
 
 
 def extract_reply_cids(html):

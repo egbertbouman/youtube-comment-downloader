@@ -220,7 +220,7 @@ def main(argv):
     try:
         args = parser.parse_args(argv)
 
-        youtube_id = args.youtubeid
+        youtube_id = args.youtubeid.strip()
         output = args.output
         limit = args.limit
 

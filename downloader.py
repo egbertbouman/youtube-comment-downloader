@@ -38,7 +38,7 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
 
 
 def download_comments(youtube_id, sleep=.1):
-    if r'\"isLiveContent\":true' in requests.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id)).text:
+    if r'\"isLiveContent\":true' in requests.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), timeout=30).text:
         print('Live stream detected! Not all comments may be downloaded.')
         return download_comments_new_api(youtube_id, sleep)
     return download_comments_old_api(youtube_id, sleep)
@@ -49,7 +49,7 @@ def download_comments_new_api(youtube_id, sleep=1):
     session = requests.Session()
     session.headers['User-Agent'] = USER_AGENT
 
-    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), timeout=30)
     html = response.text
     session_token = find_value(html, 'XSRF_TOKEN', 3)
 
@@ -114,7 +114,7 @@ def download_comments_old_api(youtube_id, sleep=1):
     session.headers['User-Agent'] = USER_AGENT
 
     # Get Youtube page with initial comments
-    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+    response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), timeout=30)
     html = response.text
 
     reply_cids = extract_reply_cids(html)
@@ -220,8 +220,8 @@ def main(argv):
     try:
         args = parser.parse_args(argv)
 
-        youtube_id = args.youtubeid
-        output = args.output
+        youtube_id = args.youtubeid.strip()
+        output = args.output.strip()
         limit = args.limit
 
         if not youtube_id or not output:

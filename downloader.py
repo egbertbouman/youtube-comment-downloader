@@ -52,7 +52,7 @@ def download_comments_new_api(youtube_id, sleep=1):
     response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
     html = response.text
     session_token = find_value(html, 'XSRF_TOKEN', 3)
-    session_token = bytes(session_token, 'ascii').decode('unicode-escape')
+    session_token = session_token.encode('ascii').decode('unicode-escape')
 
     data = json.loads(find_value(html, 'var ytInitialData = ', 0, '};') + '}')
     for renderer in search_dict(data, 'itemSectionRenderer'):
@@ -127,7 +127,7 @@ def download_comments_old_api(youtube_id, sleep=1):
 
     page_token = find_value(html, 'data-token')
     session_token = find_value(html, 'XSRF_TOKEN', 3)
-    session_token = bytes(session_token, 'ascii').decode('unicode-escape')
+    session_token = session_token.encode('ascii').decode('unicode-escape')
 
     first_iteration = True
 

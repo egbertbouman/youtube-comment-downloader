@@ -2,13 +2,13 @@
 
 from __future__ import print_function
 
+import argparse
 import io
 import json
 import os
 import sys
 import time
 
-import argparse
 import lxml.html
 import requests
 from lxml.cssselect import CSSSelector
@@ -212,7 +212,7 @@ def extract_reply_cids(html):
     return [i.get('data-cid') for i in sel(tree)]
 
 
-def main(argv):
+def main(argv = None):
     parser = argparse.ArgumentParser(add_help=False, description=('Download Youtube comments without using the Youtube API'))
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
@@ -220,7 +220,7 @@ def main(argv):
     parser.add_argument('--limit', '-l', type=int, help='Limit the number of comments')
 
     try:
-        args = parser.parse_args(argv)
+        args = parser.parse_args() if argv is None else parser.parse_args(argv)
 
         youtube_id = args.youtubeid
         output = args.output

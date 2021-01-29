@@ -1,19 +1,18 @@
 # youtube-comment-downloader
 Simple script for downloading Youtube comments without using the Youtube API. The output is in line delimited JSON.
 
-### Dependencies
-* Python 2.7+
-* requests
-* lxml
-* cssselect
+### Installation
 
-The python packages can be installed with:
+Preferably inside a [python virtual environment](https://virtualenv.pypa.io/en/latest/) install this package via
 
-    pip install -r requirements.txt
+```
+pip install https://github.com/egbertbouman/youtube-comment-downloader/archive/master.zip
+```
 
 ### Usage
 ```
-usage: downloader.py [--help] [--youtubeid YOUTUBEID] [--output OUTPUT]
+$ youtube-comment-downloader --help
+usage: youtube-comment-downloader [--help] [--youtubeid YOUTUBEID] [--output OUTPUT] [--limit LIMIT]
 
 Download Youtube comments without using the Youtube API
 
@@ -23,12 +22,24 @@ optional arguments:
                         ID of Youtube video for which to download the comments
   --output OUTPUT, -o OUTPUT
                         Output filename (output format is line delimited JSON)
+  --limit LIMIT, -l LIMIT
+                        Limit the number of comments
 ```
 
 For example:
 ```
-python downloader.py --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
+youtube-comment-downloader --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
 ```
 
 For Youtube IDs starting with - (dash) you will need to run the script with:
 `-y=-idwithdash` or `--youtubeid=-idwithdash`
+
+### Dependencies
+* Python 2.7+
+* requests
+* lxml
+* cssselect
+
+The python packages can be installed with:
+
+    pip install -r requirements.txt

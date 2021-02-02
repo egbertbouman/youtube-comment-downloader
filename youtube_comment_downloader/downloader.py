@@ -87,18 +87,19 @@ def download_comments(youtube_id, sleep=.1):
         time.sleep(sleep)
 
 
-def search_dict(partial, key):
-    if isinstance(partial, dict):
-        for k, v in partial.items():
-            if k == key:
-                yield v
-            else:
-                for o in search_dict(v, key):
-                    yield o
-    elif isinstance(partial, list):
-        for i in partial:
-            for o in search_dict(i, key):
-                yield o
+def search_dict(partial, search_key):
+    stack = [partial]
+    while stack:
+        current_item = stack.pop()
+        if isinstance(current_item, dict):
+            for key, value in current_item.items():
+                if key == search_key:
+                    yield value
+                else:
+                    stack.append(value)
+        elif isinstance(current_item, list):
+            for value in current_item:
+                stack.append(value)
 
 
 def main(argv = None):

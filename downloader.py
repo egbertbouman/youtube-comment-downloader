@@ -37,7 +37,6 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
 
 
 def download_comments(youtube_id, sleep=.1):
-    # Use the new youtube API to download some comments
     session = requests.Session()
     session.headers['User-Agent'] = USER_AGENT
 
@@ -51,12 +50,16 @@ def download_comments(youtube_id, sleep=.1):
         ncd = next(search_dict(renderer, 'nextContinuationData'), None)
         if ncd:
             break
-    continuations = [(ncd['continuation'], ncd['clickTrackingParams'])]
 
+    if not ncd:
+        # Comments disabled?
+        return
+
+    continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
     while continuations:
-        continuation, itct = continuations.pop()
+        continuation, itct, action = continuations.pop()
         response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL,
-                                params={'action_get_comments': 1,
+                                params={action: 1,
                                         'pbj': 1,
                                         'ctoken': continuation,
                                         'continuation': continuation,
@@ -70,9 +73,18 @@ def download_comments(youtube_id, sleep=.1):
         if list(search_dict(response, 'externalErrorMessage')):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
 
-        # Ordering matters. The newest continuations should go first.
-        continuations = [(ncd['continuation'], ncd['clickTrackingParams'])
-                         for ncd in search_dict(response, 'nextContinuationData')] + continuations
+        if action == 'action_get_comments':
+            section = next(search_dict(response, 'itemSectionContinuation'), {})
+            for continuation in section.get('continuations', []):
+                ncd = continuation['nextContinuationData']
+                continuations.append((ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments'))
+            for item in section.get('contents', []):
+                continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
+                                      for ncd in search_dict(item, 'nextContinuationData')])
+
+        elif action == 'action_get_comment_replies':
+            continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
+                                  for ncd in search_dict(response, 'nextContinuationData')])
 
         for comment in search_dict(response, 'commentRenderer'):
             yield {'cid': comment['commentId'],

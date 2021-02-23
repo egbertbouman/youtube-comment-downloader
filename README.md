@@ -23,6 +23,9 @@ optional arguments:
                         ID of Youtube video for which to download the comments
   --output OUTPUT, -o OUTPUT
                         Output filename (output format is line delimited JSON)
+  --limit LIMIT, -l LIMIT
+                        Limit the number of comments
+  --sort SORT, -s SORT  Whether to download popular (0) or recent comments (1). Defaults to 1
 ```
 
 For example:

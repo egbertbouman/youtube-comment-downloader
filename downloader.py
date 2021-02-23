@@ -18,6 +18,9 @@ YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_service_ajax'
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
 
+SORT_BY_POPULAR = 0
+SORT_BY_RECENT = 1
+
 
 def find_value(html, key, num_chars=2, separator='"'):
     pos_begin = html.find(key) + len(key) + num_chars
@@ -36,7 +39,7 @@ def ajax_request(session, url, params=None, data=None, headers=None, retries=5, 
             time.sleep(sleep)
 
 
-def download_comments(youtube_id, sleep=.1):
+def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
     session = requests.Session()
     session.headers['User-Agent'] = USER_AGENT
 
@@ -55,6 +58,7 @@ def download_comments(youtube_id, sleep=.1):
         # Comments disabled?
         return
 
+    needs_sorting = sort_by != SORT_BY_POPULAR
     continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
     while continuations:
         continuation, itct, action = continuations.pop()
@@ -72,6 +76,15 @@ def download_comments(youtube_id, sleep=.1):
             break
         if list(search_dict(response, 'externalErrorMessage')):
             raise RuntimeError('Error returned from server: ' + next(search_dict(response, 'externalErrorMessage')))
+
+        if needs_sorting:
+            sort_menu = next(search_dict(response, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
+            if sort_by < len(sort_menu):
+                ncd = sort_menu[sort_by]['continuation']['reloadContinuationData']
+                continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
+                needs_sorting = False
+                continue
+            raise RuntimeError('Failed to set sorting')
 
         if action == 'action_get_comments':
             section = next(search_dict(response, 'itemSectionContinuation'), {})
@@ -120,6 +133,8 @@ def main(argv):
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
     parser.add_argument('--limit', '-l', type=int, help='Limit the number of comments')
+    parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT,
+                        help='Whether to download popular (0) or recent comments (1). Defaults to 1')
 
     try:
         args = parser.parse_args(argv)
@@ -143,7 +158,7 @@ def main(argv):
             sys.stdout.write('Downloaded %d comment(s)\r' % count)
             sys.stdout.flush()
             start_time = time.time()
-            for comment in download_comments(youtube_id):
+            for comment in download_comments(youtube_id, args.sort):
                 comment_json = json.dumps(comment, ensure_ascii=False)
                 print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
                 count += 1

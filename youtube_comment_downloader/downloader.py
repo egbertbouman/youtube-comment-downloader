@@ -2,13 +2,13 @@
 
 from __future__ import print_function
 
+import argparse
 import io
 import json
 import os
 import sys
 import time
 
-import argparse
 import lxml.html
 import requests
 from lxml.cssselect import CSSSelector
@@ -127,7 +127,7 @@ def search_dict(partial, search_key):
                 stack.append(value)
 
 
-def main(argv):
+def main(argv = None):
     parser = argparse.ArgumentParser(add_help=False, description=('Download Youtube comments without using the Youtube API'))
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
@@ -137,7 +137,7 @@ def main(argv):
                         help='Whether to download popular (0) or recent comments (1). Defaults to 1')
 
     try:
-        args = parser.parse_args(argv)
+        args = parser.parse_args() if argv is None else parser.parse_args(argv)
 
         youtube_id = args.youtubeid
         output = args.output

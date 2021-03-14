@@ -101,7 +101,7 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
 
         for comment in search_dict(response, 'commentRenderer'):
             yield {'cid': comment['commentId'],
-                   'text': ''.join([c['text'] for c in comment['contentText']['runs']]),
+                   'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
                    'channel': comment['authorEndpoint']['browseEndpoint']['browseId'],

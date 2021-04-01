@@ -38,8 +38,6 @@ For Youtube IDs starting with - (dash) you will need to run the script with:
 ### Dependencies
 * Python 2.7+
 * requests
-* lxml
-* cssselect
 
 The python packages can be installed with:
 

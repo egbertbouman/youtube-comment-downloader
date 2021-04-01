@@ -9,9 +9,7 @@ import os
 import sys
 import time
 
-import lxml.html
 import requests
-from lxml.cssselect import CSSSelector
 
 YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
 YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_service_ajax'

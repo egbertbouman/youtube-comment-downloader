@@ -44,6 +44,11 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
     session.headers['User-Agent'] = USER_AGENT
 
     response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+
+    if 'uxe=' in response.request.url:
+        session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
+        response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+
     html = response.text
     session_token = find_value(html, 'XSRF_TOKEN', 3)
     session_token = session_token.encode('ascii').decode('unicode-escape')

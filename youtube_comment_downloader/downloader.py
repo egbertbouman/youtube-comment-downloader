@@ -107,7 +107,7 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
                    'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],
                    'author': comment.get('authorText', {}).get('simpleText', ''),
-                   'channel': comment['authorEndpoint']['browseEndpoint']['browseId'],
+                   'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
                    'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                    'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
                    'heart': next(search_dict(comment, 'isHearted'), False)}

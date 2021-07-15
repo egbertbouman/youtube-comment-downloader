@@ -12,7 +12,6 @@ import time
 import requests
 
 YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
-YOUTUBE_COMMENTS_AJAX_URL = 'https://www.youtube.com/comment_service_ajax'
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
 
@@ -26,9 +25,14 @@ def find_value(html, key, num_chars=2, separator='"'):
     return html[pos_begin: pos_end]
 
 
-def ajax_request(session, url, params=None, data=None, headers=None, retries=5, sleep=20):
+def ajax_request(session, endpoint, version, api_key, retries=5, sleep=20):
+    url = 'https://www.youtube.com' + endpoint['commandMetadata']['webCommandMetadata']['apiUrl']
+    data = {'context': {'client': {'userAgent': USER_AGENT, 'clientName': 'WEB', 'clientVersion': version},
+                        'clickTracking': {'clickTrackingParams': endpoint['clickTrackingParams']}},
+            "continuation": endpoint['continuationCommand']['token']}
+
     for _ in range(retries):
-        response = session.post(url, params=params, data=data, headers=headers)
+        response = session.post(url, params={'key': api_key}, json=data)
         if response.status_code == 200:
             return response.json()
         if response.status_code in [403, 413]:
@@ -48,32 +52,21 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
         response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
 
     html = response.text
-    session_token = find_value(html, 'XSRF_TOKEN', 3)
-    session_token = session_token.encode('ascii').decode('unicode-escape')
+    version = find_value(html, 'client.version', 4, '\'')
+    api_key = find_value(html, 'INNERTUBE_API_KEY', 3)
 
     data = json.loads(find_value(html, 'var ytInitialData = ', 0, '};') + '}')
-    for renderer in search_dict(data, 'itemSectionRenderer'):
-        ncd = next(search_dict(renderer, 'nextContinuationData'), None)
-        if ncd:
-            break
-
-    if not ncd:
+    section = next(search_dict(data, 'itemSectionRenderer'), None)
+    renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
+    if not renderer:
         # Comments disabled?
         return
 
     needs_sorting = sort_by != SORT_BY_POPULAR
-    continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
+    continuations = [renderer['continuationEndpoint']]
     while continuations:
-        continuation, itct, action = continuations.pop()
-        response = ajax_request(session, YOUTUBE_COMMENTS_AJAX_URL,
-                                params={action: 1,
-                                        'pbj': 1,
-                                        'ctoken': continuation,
-                                        'continuation': continuation,
-                                        'itct': itct},
-                                data={'session_token': session_token},
-                                headers={'X-YouTube-Client-Name': '1',
-                                         'X-YouTube-Client-Version': '2.20201202.06.01'})
+        continuation = continuations.pop()
+        response = ajax_request(session, continuation, version, api_key)
 
         if not response:
             break
@@ -83,26 +76,23 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
         if needs_sorting:
             sort_menu = next(search_dict(response, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
             if sort_by < len(sort_menu):
-                ncd = sort_menu[sort_by]['continuation']['reloadContinuationData']
-                continuations = [(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments')]
+                continuations = [sort_menu[sort_by]['serviceEndpoint']]
                 needs_sorting = False
                 continue
             raise RuntimeError('Failed to set sorting')
 
-        if action == 'action_get_comments':
-            section = next(search_dict(response, 'itemSectionContinuation'), {})
-            for continuation in section.get('continuations', []):
-                ncd = continuation['nextContinuationData']
-                continuations.append((ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comments'))
-            for item in section.get('contents', []):
-                continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
-                                      for ncd in search_dict(item, 'nextContinuationData')])
+        actions = list(search_dict(response, 'reloadContinuationItemsCommand')) + \
+                  list(search_dict(response, 'appendContinuationItemsAction'))
+        for action in actions:
+            for item in action.get('continuationItems', []):
+                if action['targetId'] == 'comments-section':
+                    # Process continuations for comments and replies.
+                    continuations[:0] = [ep for ep in search_dict(item, 'continuationEndpoint')]
+                if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
+                    # Process the 'Show more replies' button
+                    continuations.append(next(search_dict(item, 'buttonRenderer'))['command'])
 
-        elif action == 'action_get_comment_replies':
-            continuations.extend([(ncd['continuation'], ncd['clickTrackingParams'], 'action_get_comment_replies')
-                                  for ncd in search_dict(response, 'nextContinuationData')])
-
-        for comment in search_dict(response, 'commentRenderer'):
+        for comment in reversed(list(search_dict(response, 'commentRenderer'))):
             yield {'cid': comment['commentId'],
                    'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                    'time': comment['publishedTimeText']['runs'][0]['text'],

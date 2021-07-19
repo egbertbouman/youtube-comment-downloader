@@ -9,6 +9,7 @@ import os
 import sys
 import time
 
+import re
 import requests
 
 YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
@@ -18,21 +19,23 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 SORT_BY_POPULAR = 0
 SORT_BY_RECENT = 1
 
-
-def find_value(html, key, num_chars=2, separator='"'):
-    pos_begin = html.find(key) + len(key) + num_chars
-    pos_end = html.find(separator, pos_begin)
-    return html[pos_begin: pos_end]
+YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
+YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
 
 
-def ajax_request(session, endpoint, version, api_key, retries=5, sleep=20):
+def regex_search(text, pattern, group=1, default=None):
+    match = re.search(pattern, text)
+    return match.group(group) if match else default
+
+
+def ajax_request(session, endpoint, ytcfg, retries=5, sleep=20):
     url = 'https://www.youtube.com' + endpoint['commandMetadata']['webCommandMetadata']['apiUrl']
-    data = {'context': {'client': {'userAgent': USER_AGENT, 'clientName': 'WEB', 'clientVersion': version},
-                        'clickTracking': {'clickTrackingParams': endpoint['clickTrackingParams']}},
-            "continuation": endpoint['continuationCommand']['token']}
+    
+    data = {'context': ytcfg['INNERTUBE_CONTEXT'],
+            'continuation': endpoint['continuationCommand']['token']}
 
     for _ in range(retries):
-        response = session.post(url, params={'key': api_key}, json=data)
+        response = session.post(url, params={'key': ytcfg['INNERTUBE_API_KEY']}, json=data)
         if response.status_code == 200:
             return response.json()
         if response.status_code in [403, 413]:
@@ -52,10 +55,12 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
         response = session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
 
     html = response.text
-    version = find_value(html, 'client.version', 4, '\'')
-    api_key = find_value(html, 'INNERTUBE_API_KEY', 3)
+    ytcfg = json.loads(regex_search(html, YT_CFG_RE, default=''))
+    if not ytcfg:
+        return # Unable to extract configuration
 
-    data = json.loads(find_value(html, 'var ytInitialData = ', 0, '};') + '}')
+    data = json.loads(regex_search(html, YT_INITIAL_DATA_RE, default=''))
+
     section = next(search_dict(data, 'itemSectionRenderer'), None)
     renderer = next(search_dict(section, 'continuationItemRenderer'), None) if section else None
     if not renderer:
@@ -66,7 +71,7 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
     continuations = [renderer['continuationEndpoint']]
     while continuations:
         continuation = continuations.pop()
-        response = ajax_request(session, continuation, version, api_key)
+        response = ajax_request(session, continuation, ytcfg)
 
         if not response:
             break

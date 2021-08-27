@@ -24,6 +24,8 @@ optional arguments:
                         Output filename (output format is line delimited JSON)
   --limit LIMIT, -l LIMIT
                         Limit the number of comments
+  --language LANGUAGE, -a LANGUAGE
+                        Language for Youtube generated text (e.g. en)
   --sort SORT, -s SORT  Whether to download popular (0) or recent comments (1). Defaults to 1
 ```
 

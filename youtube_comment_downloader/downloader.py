@@ -44,7 +44,7 @@ def ajax_request(session, endpoint, ytcfg, retries=5, sleep=20):
             time.sleep(sleep)
 
 
-def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
+def download_comments(youtube_id, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
     session = requests.Session()
     session.headers['User-Agent'] = USER_AGENT
 
@@ -58,6 +58,8 @@ def download_comments(youtube_id, sort_by=SORT_BY_RECENT, sleep=.1):
     ytcfg = json.loads(regex_search(html, YT_CFG_RE, default=''))
     if not ytcfg:
         return # Unable to extract configuration
+    if language:
+        ytcfg['INNERTUBE_CONTEXT']['client']['hl'] = language
 
     data = json.loads(regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
@@ -131,6 +133,7 @@ def main(argv = None):
     parser.add_argument('--youtubeid', '-y', help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
     parser.add_argument('--limit', '-l', type=int, help='Limit the number of comments')
+    parser.add_argument('--language', '-a', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT,
                         help='Whether to download popular (0) or recent comments (1). Defaults to 1')
 
@@ -156,7 +159,7 @@ def main(argv = None):
             sys.stdout.write('Downloaded %d comment(s)\r' % count)
             sys.stdout.flush()
             start_time = time.time()
-            for comment in download_comments(youtube_id, args.sort):
+            for comment in download_comments(youtube_id, args.sort, args.language):
                 comment_json = json.dumps(comment, ensure_ascii=False)
                 print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
                 count += 1

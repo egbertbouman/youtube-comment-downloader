@@ -34,8 +34,15 @@ For example:
 youtube-comment-downloader --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
 ```
 
-For Youtube IDs starting with - (dash) you will need to run the script with:
+For Youtube IDs starting with "-" (dash) you will need to run the command with:
 `-y=-idwithdash` or `--youtubeid=-idwithdash`
+
+Like this:
+`Made up example ID: -mf3bjKwwlMM`
+`-y=-mf3bjKwwlMM` or `--youtubeid=-mf3bjKwwlMM`
+
+The only difference is that you add a "=" and remove the empty space before the ID.
+
 
 ### Dependencies
 * Python 2.7+

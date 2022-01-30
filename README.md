@@ -62,7 +62,7 @@ options:
 
 For example:
 ```
-youtube-comment-downloader --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
+youtube-comment-downloader ScMzIvxBSi4
 ```
 
 For Youtube IDs starting with - (dash) you will need to run the script with:

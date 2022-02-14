@@ -3,7 +3,13 @@ Simple script for downloading Youtube comments without using the Youtube API. Th
 
 ### Installation
 
-Preferably inside a [python virtual environment](https://virtualenv.pypa.io/en/latest/) install this package via
+Preferably inside a [python virtual environment](https://virtualenv.pypa.io/en/latest/) install this package via:
+
+```
+pip install youtube-comment-downloader
+```
+
+Or directly from the GitHub repository:
 
 ```
 pip install https://github.com/egbertbouman/youtube-comment-downloader/archive/master.zip

@@ -42,11 +42,3 @@ youtube-comment-downloader --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
 
 For Youtube IDs starting with - (dash) you will need to run the script with:
 `-y=-idwithdash` or `--youtubeid=-idwithdash`
-
-### Dependencies
-* Python 2.7+
-* requests
-
-The python packages can be installed with:
-
-    pip install -r requirements.txt

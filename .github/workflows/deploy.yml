@@ -29,4 +29,3 @@ jobs:
         sed -i "s/version = 0.1/version = $RELEASE_VERSION/g" setup.cfg
         python setup.py sdist bdist_wheel
         twine upload dist/*
-        ${{ github.event.release.tag_name }}

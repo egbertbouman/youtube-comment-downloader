@@ -54,7 +54,3 @@ def main(argv = None):
     except Exception as e:
         print('Error:', str(e))
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])

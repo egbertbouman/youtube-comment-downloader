@@ -164,13 +164,13 @@ def main(argv=None):
     parser.add_argument("--heart", "-H", type=int, metavar="int", default=HEART_EITHER, help=f"If set {HEART_TRUE}, only saves comment with hearts, if {HEART_FALSE} it saves comments only without a heart. Default: {HEART_EITHER} (Saves all).")
 
     author_specification = parser.add_mutually_exclusive_group()
-    author_specification.add_argument("--author", "-a", type=str, metavar="str", default=None, help="Only saves the comment if the author's name matches the given string")
+    author_specification.add_argument("--author", "--authormatch", "-a", "-aM", type=str, metavar="str", default=None, help="Only saves the comment if the author's name matches the given string")
     author_specification.add_argument("--authorincl", "-aI", metavar="str", type=str, default=None, help="Only saves the comment if the author's name contains the string")
     author_specification.add_argument("--authorexcl", "-aE", metavar="str", type=str, default=None, help="Only saves the comment if the author's name not contains the string")
     author_specification.add_argument("--authorexclmatch", "-aEM", metavar="str", type=str, default=None, help="Only saves the comment if the author's name not matches the string")
 
     comment_specification = parser.add_mutually_exclusive_group()
-    comment_specification.add_argument("--comment", "-c", metavar="str", type=str, default=None, help="Only saves the comment if the comment matches the given string")
+    comment_specification.add_argument("--comment", "--commentmatch", "-c", "-cM", metavar="str", type=str, default=None, help="Only saves the comment if the comment matches the given string")
     comment_specification.add_argument("--commentincl", "-cI", metavar="str", type=str, default=None, help="Only saves the comment if the comment contains the given string")
     comment_specification.add_argument("--commentexcl", "-cE", metavar="str", type=str, default=None, help="Only saves the comment if the comment not contains the given string")
     comment_specification.add_argument("--commentexclmatch", "-cEM", metavar="str", type=str, default=None, help="Only saves the comment if the comment not matches the given string")
@@ -354,8 +354,7 @@ def main(argv=None):
             c = 0
             while True:
                 line = r.readline()
-                if not line:
-                    break
+                if not line: break
                 data.append(json.loads(line))
                 c += 1
                 if args.verbose:

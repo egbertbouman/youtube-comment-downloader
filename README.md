@@ -12,10 +12,6 @@ pip install https://github.com/drdayox/youtube-comment-downloader/archive/master
 ### Usage
 ```
 $ youtube-comment-downloader --help
-usage: youtube-comment-downloader [--help] [--youtubeid YOUTUBEID] [--output OUTPUT] [--limit LIMIT]
-
-Download Youtube comments without using the Youtube API
-
 usage: downloader.py [--help] [--output str] [--limit int] [--language str] [--sort int] [--heart int]
                      [--author str | --authorincl str | --authorexcl str | --authorexclmatch str]
                      [--comment str | --commentincl str | --commentexcl str | --commentexclmatch str] [--minlikes int] [--maxlikes int] [--verbose | --quiet] [--presearch]

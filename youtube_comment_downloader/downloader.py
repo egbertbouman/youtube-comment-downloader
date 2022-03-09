@@ -94,17 +94,19 @@ class YoutubeCommentDownloader:
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
 
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
-                time_text = comment['publishedTimeText']['runs'][0]['text']
-                time_parsed = dateparser.parse(time_text.split('(')[0].strip()).timestamp()
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
-                          'time': time_text,
-                          'time_parsed': time_parsed,
+                          'time': comment['publishedTimeText']['runs'][0]['text'],
                           'author': comment.get('authorText', {}).get('simpleText', ''),
                           'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
                           'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                           'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
                           'heart': next(self.search_dict(comment, 'isHearted'), False)}
+
+                try:
+                    result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()
+                except AttributeError:
+                    pass
 
                 paid = (
                     comment.get('paidCommentChipRenderer', {})

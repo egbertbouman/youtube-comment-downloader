@@ -96,16 +96,26 @@ class YoutubeCommentDownloader:
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
                 time_text = comment['publishedTimeText']['runs'][0]['text']
                 time_parsed = dateparser.parse(time_text.split('(')[0].strip()).timestamp()
-                yield {'cid': comment['commentId'],
-                       'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
-                       'time': time_text,
-                       'time_parsed': time_parsed,
-                       'author': comment.get('authorText', {}).get('simpleText', ''),
-                       'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
-                       'votes': comment.get('voteCount', {}).get('simpleText', '0'),
-                       'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
-                       'heart': next(self.search_dict(comment, 'isHearted'), False)}
+                result = {'cid': comment['commentId'],
+                          'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
+                          'time': time_text,
+                          'time_parsed': time_parsed,
+                          'author': comment.get('authorText', {}).get('simpleText', ''),
+                          'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
+                          'votes': comment.get('voteCount', {}).get('simpleText', '0'),
+                          'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
+                          'heart': next(self.search_dict(comment, 'isHearted'), False)}
 
+                paid = (
+                    comment.get('paidCommentChipRenderer', {})
+                    .get('pdgCommentChipRenderer', {})
+                    .get('chipText', {})
+                    .get('simpleText')
+                )
+                if paid:
+                    result['paid'] = paid
+
+                yield result
             time.sleep(sleep)
 
     @staticmethod

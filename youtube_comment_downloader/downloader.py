@@ -39,17 +39,20 @@ class YoutubeCommentDownloader:
             else:
                 time.sleep(sleep)
 
-    def get_comments(self, youtube_id, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
-        response = self.session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+    def get_comments(self, youtube_id, *args, **kwargs):
+        return self.get_comments_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), *args, **kwargs)
+
+    def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
+        response = self.session.get(youtube_url)
 
         if 'uxe=' in response.request.url:
             self.session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
-            response = self.session.get(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+            response = self.session.get(youtube_url)
 
         html = response.text
         ytcfg = json.loads(self.regex_search(html, YT_CFG_RE, default=''))
         if not ytcfg:
-            return # Unable to extract configuration
+            return  # Unable to extract configuration
         if language:
             ytcfg['INNERTUBE_CONTEXT']['client']['hl'] = language
 

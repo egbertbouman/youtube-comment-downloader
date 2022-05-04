@@ -58,7 +58,7 @@ class YoutubeCommentDownloader:
 
         data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
-        section = next(self.search_dict(data, 'itemSectionRenderer'), None)
+        section = next(self.search_dict(data['contents'], 'itemSectionRenderer'), None)
         renderer = next(self.search_dict(section, 'continuationItemRenderer'), None) if section else None
         if not renderer:
             # Comments disabled?

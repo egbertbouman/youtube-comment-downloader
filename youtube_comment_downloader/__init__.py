@@ -254,6 +254,6 @@ def main(argv=None):
 
             print()
             
-    except Exception as e:
-        print('Error:', str(e))
-        sys.exit(1)
+    # except Exception as e:
+    #     print('Error:', str(e))
+    #     sys.exit(1)

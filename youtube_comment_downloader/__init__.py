@@ -95,7 +95,7 @@ def main(argv=None):
     print('\nDownloading Youtube comments for video:', youtube_id)
     downloader = YoutubeCommentDownloader()
     generator = (
-        downloader.get_comments(youtube_id, args.sort, args.language)
+        downloader.get_comments(youtube_id, 1, args.language)
         if youtube_id
         else downloader.get_comments_from_url(youtube_url, args.sort, args.language)
     )

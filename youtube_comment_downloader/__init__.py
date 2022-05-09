@@ -61,6 +61,9 @@ def main(argv=None):
     youtube_url = args.url
     output = args.output
     limit = args.limit
+    
+    print(f"ARGS.SORT: {args.sort}")
+    print(f"TYPE: {type(args.sort)}")
 
     heart = args.heart
 

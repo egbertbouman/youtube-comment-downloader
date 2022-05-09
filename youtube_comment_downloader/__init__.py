@@ -90,8 +90,6 @@ def main(argv=None):
     if args.append:
         if not os.path.exists(args.append):
             raise FileNotFoundError("The given file path does not exist ")
-        elif not pathlib.Path.is_file(args.append):
-            raise FileNotFoundError("The given path is a folder")
         else:
             append_file = args.append
     

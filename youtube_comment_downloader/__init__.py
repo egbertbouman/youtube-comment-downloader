@@ -44,7 +44,7 @@ def main(argv=None):
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
     parser.add_argument('--url', '-u', help='Youtube URL for which to download the comments')
-    parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file')
+    parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file, can not be done with a formatted file, but can be formatted afterwards')
 
     # OBSOLETE ARGUMENTS
     #parser.add_argument("--thread", "-t", type=int, default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")
@@ -197,7 +197,10 @@ def main(argv=None):
                 comment_json = json.dumps(comment, ensure_ascii=False)
                 
                 if latest_comment_id == json.loads(comment_json)["cid"]: 
-                    print("APPEND POINT FOUND")
+                    if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+                    elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
+                    else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+                    print("Appendation point found, breaking")
                     break
                 
                 count += 1
@@ -244,10 +247,7 @@ def main(argv=None):
                     elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
 
                     if limit != -1 and count >= limit: break
-
-        if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-        elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
-        else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+                    
     else:
         raise RuntimeError("Append methond can not be determined!")
 
@@ -275,49 +275,113 @@ def main(argv=None):
 
             print(f"[MINLIKES] {str(minlikes)}")
             print(f"[MAXLIKES] {str(maxlikes) if maxlikes != -1 else 'no limit'}")
+        if not args.append:
+            with open(output, "r", encoding="utf8") as fp:
+                if os.path.exists(output + ".comments"):
+                    os.remove(output + ".comments")
+                with open(output + ".comments", "a", encoding="utf8") as ap:
+                    count = 0
+                    while True:
+                        count += 1
+                        line = fp.readline()
+                        if not line: break
+                        line_json = json.loads(line)
 
-        with open(output, "r", encoding="utf8") as fp:
-            if os.path.exists(output + ".comments"):
-                os.remove(output + ".comments")
-            with open(output + ".comments", "a", encoding="utf8") as ap:
-                count = 0
-                while True:
-                    count += 1
-                    line = fp.readline()
-                    if not line: break
-                    line_json = json.loads(line)
+                        if author != None:
+                            if args.author != None and author != line_json["author"]: continue
+                            elif args.authorincl != None and author not in line_json["author"]: continue
+                            elif args.authorexcl != None and author in line_json["author"]: continue
+                            elif args.authorexclmatch != None and author == line_json["author"]: continue
 
-                    if author != None:
-                        if args.author != None and author != line_json["author"]: continue
-                        elif args.authorincl != None and author not in line_json["author"]: continue
-                        elif args.authorexcl != None and author in line_json["author"]: continue
-                        elif args.authorexclmatch != None and author == line_json["author"]: continue
+                        if text != None:
+                            if args.comment != None and text != line_json["text"]: continue
+                            elif args.commentincl != None and text not in line_json["text"]: continue
+                            elif args.commentexcl != None and text in line_json["text"]: continue
+                            elif args.commentexclmatch != None and text == line_json["text"]: continue
 
-                    if text != None:
-                        if args.comment != None and text != line_json["text"]: continue
-                        elif args.commentincl != None and text not in line_json["text"]: continue
-                        elif args.commentexcl != None and text in line_json["text"]: continue
-                        elif args.commentexclmatch != None and text == line_json["text"]: continue
+                        if heart != HEART_EITHER:
+                            if heart == HEART_TRUE and not line_json["heart"]: continue
+                            elif heart == HEART_FALSE and line_json["heart"]: continue
 
-                    if heart != HEART_EITHER:
-                        if heart == HEART_TRUE and not line_json["heart"]: continue
-                        elif heart == HEART_FALSE and line_json["heart"]: continue
+                        try:
+                            if maxlikes != -1 and not (minlikes <= int(line_json["votes"]) <= maxlikes): continue
+                            elif maxlikes == -1 and not (minlikes <= int(line_json["votes"])): continue
+                        except ValueError:
+                            if not args.quiet:
+                                print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({line_json['votes']})")
 
-                    try:
-                        if maxlikes != -1 and not (minlikes <= int(line_json["votes"]) <= maxlikes): continue
-                        elif maxlikes == -1 and not (minlikes <= int(line_json["votes"])): continue
-                    except ValueError:
-                        if not args.quiet:
-                            print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({line_json['votes']})")
+                        if args.verbose: print(f"[ITERATION] {count} | Adding line...")
+                        ap.write(line)
+        elif args.append:
+            with open(f"{output}.tmp", "r", encoding="utf8") as fp:
+                if os.path.exists(f"{output}2.tmp"):
+                    os.remove(f"{output}2.tmp")
+                with open(f"{output}2.tmp", "a", encoding="utf8") as ap:
+                    count = 0
+                    while True:
+                        count += 1
+                        line = fp.readline()
+                        if not line: break
+                        line_json = json.loads(line)
 
-                    if args.verbose: print(f"[ITERATION] {count} | Adding line...")
-                    ap.write(line)
-        if os.path.exists(output) and not args.presearch: os.remove(output)
+                        if author != None:
+                            if args.author != None and author != line_json["author"]: continue
+                            elif args.authorincl != None and author not in line_json["author"]: continue
+                            elif args.authorexcl != None and author in line_json["author"]: continue
+                            elif args.authorexclmatch != None and author == line_json["author"]: continue
+
+                        if text != None:
+                            if args.comment != None and text != line_json["text"]: continue
+                            elif args.commentincl != None and text not in line_json["text"]: continue
+                            elif args.commentexcl != None and text in line_json["text"]: continue
+                            elif args.commentexclmatch != None and text == line_json["text"]: continue
+
+                        if heart != HEART_EITHER:
+                            if heart == HEART_TRUE and not line_json["heart"]: continue
+                            elif heart == HEART_FALSE and line_json["heart"]: continue
+
+                        try:
+                            if maxlikes != -1 and not (minlikes <= int(line_json["votes"]) <= maxlikes): continue
+                            elif maxlikes == -1 and not (minlikes <= int(line_json["votes"])): continue
+                        except ValueError:
+                            if not args.quiet:
+                                print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({line_json['votes']})")
+
+                        if args.verbose: print(f"[ITERATION] {count} | Adding line...")
+                        ap.write(line)
+            
+            
+        if os.path.exists(f"{output}.tmp") and not args.presearch: os.remove(f"{output}.tmp")
         if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
         elif args.quiet: print("Done!")
         else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
 
-    if args.format:
+    # MERGING
+    if args.append:
+        print("Appending...",end="")
+        if args.presearch:
+            with open(f"{output}.tmp", "a", encoding="utf8") as appendee:
+                with open(append_file, "r", encoding="utf8") as rf:
+                    while True:
+                        line = rf.readline().strip()
+                        appendee.write(line)
+                        if not line:
+                            break
+        elif not args.presearch:
+             with open(f"{output}2.tmp", "a", encoding="utf8") as appendee:
+                with open(append_file, "r", encoding="utf8") as rf:
+                    while True:
+                        line = rf.readline().strip()
+                        appendee.write(line)
+                        if not line:
+                            break
+        print("Done!")
+                                    
+            
+            
+
+
+    if args.format and not args.append:
         print("Formatting to json", end="..." if args.quiet else "\n")
         if not args.quiet:
             print('Reading and converting the data...', end="\n" if args.verbose else "")

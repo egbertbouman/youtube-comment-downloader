@@ -312,7 +312,7 @@ def main(argv=None):
 
                         if args.verbose: print(f"[ITERATION] {count} | Adding line...")
                         ap.write(line)
-                        os.remove(output)
+            os.remove(output)
         elif args.append:
             with open(f"{output}.tmp", "r", encoding="utf8") as fp:
                 if os.path.exists(f"{output}2.tmp"):

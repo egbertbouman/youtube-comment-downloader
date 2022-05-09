@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import time
+import pathlib
 
 from .downloader import YoutubeCommentDownloader, SORT_BY_RECENT
 
@@ -35,36 +36,37 @@ def main(argv=None):
         
     parser = argparse.ArgumentParser(add_help=False, description=('Download Youtube comments without using the Youtube API'))
 
-    # DEFAULT ARGUMENTS
+    # DEFAULT ARGUMENTS 
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('youtubeid', nargs="?", help='ID of Youtube video for which to download the comments')
-    parser.add_argument('--output', '-o', metavar="str", help='Output filename (output format is line delimited JSON)')
-    parser.add_argument('--limit', '-l', metavar="int", default=-1,type=int, help='Limit the number of comments')
-    parser.add_argument('--language', type=str, metavar="str", default=None, help='Language for Youtube generated text (e.g. en)')
-    parser.add_argument('--sort', '-s', metavar="int", type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
+    parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
+    parser.add_argument('--limit', '-l', default=-1,type=int, help='Limit the number of comments')
+    parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
+    parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
     parser.add_argument('--url', '-u', help='Youtube URL for which to download the comments')
+    parser.add_argument('--append', '-a', nargs="?", const="DEFAULT", default=None , help='Appends the new comments into an existing file. Raises an error if trying to append an empty file (Default is set to <youtubeid>.comments)')
 
     # OBSOLETE ARGUMENTS
-    #parser.add_argument("--thread", "-t", type=int, metavar="int", default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")
-    #parser.add_argument("--mode", "-M", type=str, metavar="str", default="w", help="Set the writing mode of the download file. (r and r+ not allowed, default: w)")
+    #parser.add_argument("--thread", "-t", type=int, default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")
+    #parser.add_argument("--mode", "-M", type=str, default="w", help="Set the writing mode of the download file. (r and r+ not allowed, default: w)")
 
     # SELECTORS
-    parser.add_argument("--heart", "-H", type=int, metavar="int", default=HEART_EITHER, help=f"If set {HEART_TRUE}, only saves comment with hearts, if {HEART_FALSE} it saves comments only without a heart. Default: {HEART_EITHER} (Saves all).")
+    parser.add_argument("--heart", "-H", type=int, default=HEART_EITHER, help=f"If set {HEART_TRUE}, only saves comment with hearts, if {HEART_FALSE} it saves comments only without a heart. Default: {HEART_EITHER} (Saves all).")
 
     author_specification = parser.add_mutually_exclusive_group()
-    author_specification.add_argument("--author", "--authormatch", "-a", "-aM", type=str, metavar="str", default=None, help="Only saves the comment if the author's name matches the given string")
-    author_specification.add_argument("--authorincl", "-aI", metavar="str", type=str, default=None, help="Only saves the comment if the author's name contains the string")
-    author_specification.add_argument("--authorexcl", "-aE", metavar="str", type=str, default=None, help="Only saves the comment if the author's name not contains the string")
-    author_specification.add_argument("--authorexclmatch", "-aEM", metavar="str", type=str, default=None, help="Only saves the comment if the author's name not matches the string")
+    author_specification.add_argument("--author", "--authormatch", "-a", "-aM", type=str, default=None, help="Only saves the comment if the author's name matches the given string")
+    author_specification.add_argument("--authorincl", "-aI", type=str, default=None, help="Only saves the comment if the author's name contains the string")
+    author_specification.add_argument("--authorexcl", "-aE", type=str, default=None, help="Only saves the comment if the author's name not contains the string")
+    author_specification.add_argument("--authorexclmatch", "-aEM", type=str, default=None, help="Only saves the comment if the author's name not matches the string")
 
     comment_specification = parser.add_mutually_exclusive_group()
-    comment_specification.add_argument("--comment", "--commentmatch", "-c", "-cM", metavar="str", type=str, default=None, help="Only saves the comment if the comment matches the given string")
-    comment_specification.add_argument("--commentincl", "-cI", metavar="str", type=str, default=None, help="Only saves the comment if the comment contains the given string")
-    comment_specification.add_argument("--commentexcl", "-cE", metavar="str", type=str, default=None, help="Only saves the comment if the comment not contains the given string")
-    comment_specification.add_argument("--commentexclmatch", "-cEM", metavar="str", type=str, default=None, help="Only saves the comment if the comment not matches the given string")
+    comment_specification.add_argument("--comment", "--commentmatch", "-c", "-cM", type=str, default=None, help="Only saves the comment if the comment matches the given string")
+    comment_specification.add_argument("--commentincl", "-cI", type=str, default=None, help="Only saves the comment if the comment contains the given string")
+    comment_specification.add_argument("--commentexcl", "-cE", type=str, default=None, help="Only saves the comment if the comment not contains the given string")
+    comment_specification.add_argument("--commentexclmatch", "-cEM", type=str, default=None, help="Only saves the comment if the comment not matches the given string")
 
-    parser.add_argument("--minlikes", "-minL", type=int, metavar="int", default=0, help="Sets the minimum like requirement for the comment (inclusive)")
-    parser.add_argument("--maxlikes", "-maxL", type=int, metavar="int", default=-1, help="Sets the maximum amount of likes a comment can have (inclusive)")
+    parser.add_argument("--minlikes", "-minL", type=int, default=0, help="Sets the minimum like requirement for the comment (inclusive)")
+    parser.add_argument("--maxlikes", "-maxL", type=int, default=-1, help="Sets the maximum amount of likes a comment can have (inclusive)")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--verbose", "-v", action="store_true", help="Prints all actions made by the program")
@@ -84,6 +86,28 @@ def main(argv=None):
         output = args.output
         limit = args.limit
         heart = args.heart
+        
+        append_variation = -1 # -1 ERROR | 0 No append | 1 Default append | 2 Manual append
+        if args.append is not None and args.append != "DEFAULT":
+            append_variation = 2
+            if not os.path.exists(args.append):
+                raise FileNotFoundError("The given file path does not exist ")
+            elif not pathlib.Path.is_file(args.append):
+                raise FileNotFoundError("The given path is a folder")
+            else:
+                append_file = args.append
+        elif args.append is not None and args.append == "DEFAULT":
+            append_variation = 1
+            if not os.path.exists(args.append):
+                raise FileNotFoundError("The given file path does not exist ")
+            elif not pathlib.Path.is_file(args.append):
+                raise FileNotFoundError("The given path is a folder")
+            else:
+                append_file = args.append
+        elif args.append is None:
+            append_variation = 0
+        
+        if append_variation == -1: raise RuntimeError("Append variation can not be determined at start")
         
         if not youtube_id and not youtube_url:
             parser.print_usage()
@@ -114,7 +138,7 @@ def main(argv=None):
             if not os.path.exists(outdir):
                 os.makedirs(outdir)
 
-        print('\nDownloading Youtube comments for video:', youtube_id)
+        print('\nDownloading Youtube comments for video:', youtube_id or youtube_url)
         downloader = YoutubeCommentDownloader()
         generator = (
             downloader.get_comments(youtube_id, args.sort, args.language)
@@ -124,58 +148,124 @@ def main(argv=None):
         count = 0
         presearch_founds = 0    
         
-        with io.open(output, 'w', encoding='utf8') as fp:
-            start_time = time.time()
-            for comment in generator:
-                comment_json = json.dumps(comment, ensure_ascii=False)
-                count += 1
-                sys.stdout.flush()
-                if args.presearch:
+        if args.append is None:
+            with io.open(output, 'w', encoding='utf8') as fp:
+                start_time = time.time()
+                for comment in generator:
+                    comment_json = json.dumps(comment, ensure_ascii=False)
+                    count += 1
+                    sys.stdout.flush()
+                    if args.presearch:
 
-                    if limit != -1 and count + 1 >= limit: break
+                        if limit != -1 and count + 1 >= limit: break
 
-                    if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
-                    elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
-                    elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
+                        if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
+                        elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
+                        elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
 
-                    if author != None:
-                        if args.author != None and author != comment["author"]: continue
-                        elif args.authorincl != None and author not in comment["author"]: continue
-                        elif args.authorexcl != None and author in comment["author"]: continue
-                        elif args.authorexclmatch != None and author == comment["author"]: continue
+                        if author != None:
+                            if args.author != None and author != comment["author"]: continue
+                            elif args.authorincl != None and author not in comment["author"]: continue
+                            elif args.authorexcl != None and author in comment["author"]: continue
+                            elif args.authorexclmatch != None and author == comment["author"]: continue
 
-                    if text != None:
-                        if args.comment != None and text != comment["text"]: continue
-                        elif args.commentincl != None and text not in comment["text"]: continue
-                        elif args.commentexcl != None and text in comment["text"]: continue
-                        elif args.commentexclmatch != None and text == comment["text"]:continue
+                        if text != None:
+                            if args.comment != None and text != comment["text"]: continue
+                            elif args.commentincl != None and text not in comment["text"]: continue
+                            elif args.commentexcl != None and text in comment["text"]: continue
+                            elif args.commentexclmatch != None and text == comment["text"]:continue
 
-                    if heart != HEART_EITHER:
-                        if heart == HEART_TRUE and not comment["heart"]: continue
-                        elif heart == HEART_FALSE and comment["heart"]: continue
+                        if heart != HEART_EITHER:
+                            if heart == HEART_TRUE and not comment["heart"]: continue
+                            elif heart == HEART_FALSE and comment["heart"]: continue
 
-                    try:
-                        if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
-                        elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
-                    except ValueError:
-                        if not args.quiet:
-                            print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
+                        try:
+                            if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
+                            elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
+                        except ValueError:
+                            if not args.quiet:
+                                print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
 
-                    print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
-                    presearch_founds += 1
+                        print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                        presearch_founds += 1
+                        
+                    else:
+                        print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                        if not args.quiet and limit != -1:
+                            printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
+                        elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
+                        elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
+
+                        if limit != -1 and count >= limit: break
+
+            if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+            elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
+            else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+            
+        elif args.append:
+            with open(append_file, "r", encoding="utf8") as apf:
+                # First line is latest.
+                latest_comment_id = apf.readline().rstrip()
+            
+            with io.open(f"{output}.tmp", 'w', encoding='utf8') as fp:
+                start_time = time.time()
+                for comment in generator:
+                    comment_json = json.dumps(comment, ensure_ascii=False)
+                    count += 1
+                    sys.stdout.flush()
                     
-                else:
-                    print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
-                    if not args.quiet and limit != -1:
-                        printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
-                    elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
-                    elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
+                    print(comment_json)
+                    print(type(comment_json))
+                    break
+                                        
+                    if args.presearch:
 
-                    if limit != -1 and count >= limit: break
+                        if limit != -1 and count + 1 >= limit: break
 
-        if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-        elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
-        else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+                        if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
+                        elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
+                        elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
+
+                        if author != None:
+                            if args.author != None and author != comment["author"]: continue
+                            elif args.authorincl != None and author not in comment["author"]: continue
+                            elif args.authorexcl != None and author in comment["author"]: continue
+                            elif args.authorexclmatch != None and author == comment["author"]: continue
+
+                        if text != None:
+                            if args.comment != None and text != comment["text"]: continue
+                            elif args.commentincl != None and text not in comment["text"]: continue
+                            elif args.commentexcl != None and text in comment["text"]: continue
+                            elif args.commentexclmatch != None and text == comment["text"]:continue
+
+                        if heart != HEART_EITHER:
+                            if heart == HEART_TRUE and not comment["heart"]: continue
+                            elif heart == HEART_FALSE and comment["heart"]: continue
+
+                        try:
+                            if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
+                            elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
+                        except ValueError:
+                            if not args.quiet:
+                                print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
+
+                        print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                        presearch_founds += 1
+                        
+                    else:
+                        print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                        if not args.quiet and limit != -1:
+                            printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
+                        elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
+                        elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
+
+                        if limit != -1 and count >= limit: break
+
+            if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+            elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
+            else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+        else:
+            raise RuntimeError("Append methond can not be determined!")
 
         if not args.presearch:
             start_time = time.time()

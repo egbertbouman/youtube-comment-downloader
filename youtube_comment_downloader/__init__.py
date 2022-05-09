@@ -44,7 +44,7 @@ def main(argv=None):
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
     parser.add_argument('--url', '-u', help='Youtube URL for which to download the comments')
-    parser.add_argument('--append', '-a', nargs="?", const="DEFAULT", default=None , help='Appends the new comments into an existing file. Raises an error if trying to append an empty file (Default is set to <youtubeid>.comments)')
+    parser.add_argument('--append', nargs="?", const="DEFAULT", default=None , help='Appends the new comments into an existing file. Raises an error if trying to append an empty file (Default is set to <youtubeid>.comments)')
 
     # OBSOLETE ARGUMENTS
     #parser.add_argument("--thread", "-t", type=int, default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")

@@ -50,6 +50,8 @@ def main(argv=None):
 
     try: 
         args = parser.parse_args() if argv is None else parser.parse_args(argv)
+        print(args)
+        
 
         print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-")
         for head_line in HEAD: print(" " + head_line)

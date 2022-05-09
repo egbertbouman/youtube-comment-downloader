@@ -44,7 +44,7 @@ def main(argv=None):
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
     parser.add_argument('--url', '-u', help='Youtube URL for which to download the comments')
-    parser.add_argument('--append', nargs="?", const="DEFAULT", default=None , help='Appends the new comments into an existing file. Raises an error if trying to append an empty file (Default is set to <youtubeid>.comments)')
+    parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file')
 
     # OBSOLETE ARGUMENTS
     #parser.add_argument("--thread", "-t", type=int, default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")
@@ -87,27 +87,13 @@ def main(argv=None):
         limit = args.limit
         heart = args.heart
         
-        append_variation = -1 # -1 ERROR | 0 No append | 1 Default append | 2 Manual append
-        if args.append is not None and args.append != "DEFAULT":
-            append_variation = 2
+        if args.append:
             if not os.path.exists(args.append):
                 raise FileNotFoundError("The given file path does not exist ")
             elif not pathlib.Path.is_file(args.append):
                 raise FileNotFoundError("The given path is a folder")
             else:
                 append_file = args.append
-        elif args.append is not None and args.append == "DEFAULT":
-            append_variation = 1
-            if not os.path.exists(args.append):
-                raise FileNotFoundError("The given file path does not exist ")
-            elif not pathlib.Path.is_file(args.append):
-                raise FileNotFoundError("The given path is a folder")
-            else:
-                append_file = args.append
-        elif args.append is None:
-            append_variation = 0
-        
-        if append_variation == -1: raise RuntimeError("Append variation can not be determined at start")
         
         if not youtube_id and not youtube_url:
             parser.print_usage()

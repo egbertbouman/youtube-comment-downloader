@@ -5,10 +5,31 @@ import os
 import sys
 import time
 
-from .downloader import YoutubeCommentDownloader, printProgressBar, SORT_BY_RECENT, HEAD, HEART_EITHER, HEART_FALSE, HEART_TRUE
+from .downloader import YoutubeCommentDownloader, SORT_BY_RECENT
 
 
 def main(argv=None):
+    
+    HEART_EITHER = -1
+    HEART_FALSE = 0
+    HEART_TRUE = 1
+
+    HEAD = [
+        "_____.___.___________ _________                                       __    ________                      .__                    .___            ",
+        "\__  |   |\__    ___/ \_   ___ \  ____   _____   _____   ____   _____/  |_  \______ \   ______  _  ______ |  |   _________     __| _/___________ ",
+        " /   |   |  |    |    /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\  |    |  \ /  _ \ \/ \/ /    \|  |  /  _ \__  \   / __ |/ __ \_  __ \\",
+        " \____   |  |    |    \     \___(  <_> )  Y Y  \  Y Y  \  ___/|   |  \  |    |    `   (  <_> )     /   |  \  |_(  <_> ) __ \_/ /_/ \  ___/|  | \/",
+        " / ______|  |____|     \______  /\____/|__|_|  /__|_|  /\___  >___|  /__|   /_______  /\____/ \/\_/|___|  /____/\____(____  /\____ |\___  >__|   ",
+        " \/                           \/             \/      \/     \/     \/               \/                  \/                \/      \/    \/       "
+    ]
+    
+    def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        filledLength = int(length * iteration // total)
+        bar = fill * filledLength + ' ' * (length - filledLength)
+        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+        if iteration == total: print()
+        
     parser = argparse.ArgumentParser(add_help=False, description=('Download Youtube comments without using the Youtube API'))
 
     # DEFAULT ARGUMENTS

@@ -17,30 +17,8 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 SORT_BY_POPULAR = 0
 SORT_BY_RECENT = 1
 
-HEART_EITHER = -1
-HEART_FALSE = 0
-HEART_TRUE = 1
-
-HEAD = [
-    "_____.___.___________ _________                                       __    ________                      .__                    .___            ",
-    "\__  |   |\__    ___/ \_   ___ \  ____   _____   _____   ____   _____/  |_  \______ \   ______  _  ______ |  |   _________     __| _/___________ ",
-    " /   |   |  |    |    /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\  |    |  \ /  _ \ \/ \/ /    \|  |  /  _ \__  \   / __ |/ __ \_  __ \\",
-    " \____   |  |    |    \     \___(  <_> )  Y Y  \  Y Y  \  ___/|   |  \  |    |    `   (  <_> )     /   |  \  |_(  <_> ) __ \_/ /_/ \  ___/|  | \/",
-    " / ______|  |____|     \______  /\____/|__|_|  /__|_|  /\___  >___|  /__|   /_______  /\____/ \/\_/|___|  /____/\____(____  /\____ |\___  >__|   ",
-    " \/                           \/             \/      \/     \/     \/               \/                  \/                \/      \/    \/       "
-]
-
 YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
 YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
-
-
-def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + ' ' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
-    if iteration == total: print()
-
 
 class YoutubeCommentDownloader:
 

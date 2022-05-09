@@ -312,6 +312,7 @@ def main(argv=None):
 
                         if args.verbose: print(f"[ITERATION] {count} | Adding line...")
                         ap.write(line)
+                        os.remove(output)
         elif args.append:
             with open(f"{output}.tmp", "r", encoding="utf8") as fp:
                 if os.path.exists(f"{output}2.tmp"):
@@ -364,7 +365,7 @@ def main(argv=None):
                 with open(append_file, "r", encoding="utf8") as rf:
                     while True:
                         line = rf.readline().strip()
-                        appendee.write(line)
+                        appendee.write(line+"\n")
                         if not line:
                             break
             if os.path.exists(append_file): os.remove(append_file)
@@ -374,7 +375,7 @@ def main(argv=None):
                 with open(append_file, "r", encoding="utf8") as rf:
                     while True:
                         line = rf.readline().strip()
-                        appendee.write(line)
+                        appendee.write(line+"\n")
                         if not line:
                             break
             if os.path.exists(append_file): os.remove(append_file)

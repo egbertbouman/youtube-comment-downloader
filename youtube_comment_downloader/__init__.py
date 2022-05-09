@@ -367,14 +367,18 @@ def main(argv=None):
                         appendee.write(line)
                         if not line:
                             break
+            if os.path.exists(append_file): os.remove(append_file)
+            os.rename(f"{output}.tmp", append_file)
         elif not args.presearch:
-             with open(f"{output}2.tmp", "a", encoding="utf8") as appendee:
+            with open(f"{output}2.tmp", "a", encoding="utf8") as appendee:
                 with open(append_file, "r", encoding="utf8") as rf:
                     while True:
                         line = rf.readline().strip()
                         appendee.write(line)
                         if not line:
                             break
+            if os.path.exists(append_file): os.remove(append_file)
+            os.rename(f"{output}2.tmp", append_file)
         print("Done!")
                                     
             

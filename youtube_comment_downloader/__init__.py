@@ -1,3 +1,6 @@
+#Written by egbertbouman
+#Forked by DrDayoX
+
 import argparse
 import io
 import json
@@ -34,7 +37,7 @@ def main(argv=None):
 
     # DEFAULT ARGUMENTS
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('youtubeid', help='ID of Youtube video for which to download the comments')
+    parser.add_argument('youtubeid', nargs="?", help='ID of Youtube video for which to download the comments')
     parser.add_argument('--output', '-o', metavar="str", help='Output filename (output format is line delimited JSON)')
     parser.add_argument('--limit', '-l', metavar="int", default=-1,type=int, help='Limit the number of comments')
     parser.add_argument('--language', type=str, metavar="str", default=None, help='Language for Youtube generated text (e.g. en)')
@@ -69,216 +72,214 @@ def main(argv=None):
     parser.add_argument("--presearch", action="store_true", help="If selected the program will check for specifics while downloading, and saves only comments that match the specifications. By default it searches trough the comments after all have been downloaded. Use only if you are sure, you'll find what you are looking for!")
     parser.add_argument("--format", action="store_true", help="If selected, the program will format the document to be a json list for other usage. Requires more RAM if you have downloaded more comments.")
 
-    # try: 
-    args = parser.parse_args() if argv is None else parser.parse_args(argv)
-    print(args)
-    
+    try: 
+        args = parser.parse_args() if argv is None else parser.parse_args(argv)
+        
+        print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-")
+        for head_line in HEAD: print(" " + head_line)
+        print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-\n")
 
-    print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-")
-    for head_line in HEAD: print(" " + head_line)
-    print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-\n")
+        youtube_id = args.youtubeid
+        youtube_url = args.url
+        output = args.output
+        limit = args.limit
+        heart = args.heart
+        
+        if not youtube_id and not youtube_url:
+            parser.print_usage()
+            raise ValueError('you need to specify a Youtube ID/URL and an output filename')
 
-    youtube_id = args.youtubeid
-    youtube_url = args.url
-    output = args.output
-    limit = args.limit
-    
-    print(f"ARGS.SORT: {args.sort}")
-    print(f"TYPE: {type(args.sort)}")
+        if args.authorincl: author = args.authorincl
+        elif args.authorexcl: author = args.authorexcl
+        elif args.authorexclmatch: author = args.authorexclmatch
+        else: author = args.author
 
-    heart = args.heart
+        if args.commentincl: text = args.commentincl
+        elif args.commentexcl: text = args.commentexcl
+        elif args.commentexclmatch: text = args.commentexclmatch
+        else: text = args.comment
 
-    if args.authorincl: author = args.authorincl
-    elif args.authorexcl: author = args.authorexcl
-    elif args.authorexclmatch: author = args.authorexclmatch
-    else: author = args.author
+        minlikes = int(args.minlikes)
+        maxlikes = int(args.maxlikes)
 
-    if args.commentincl: text = args.commentincl
-    elif args.commentexcl: text = args.commentexcl
-    elif args.commentexclmatch: text = args.commentexclmatch
-    else: text = args.comment
+        if maxlikes != -1 and minlikes >= maxlikes:
+            raise Exception("The minimum amount of likes can't be greater than the amount of maximum likes")
 
-    minlikes = int(args.minlikes)
-    maxlikes = int(args.maxlikes)
+        if not output and args.presearch: output = f"{youtube_id}.comments"
+        elif not output and not args.presearch: output = youtube_id
+        else: output = args.output
 
-    if maxlikes != -1 and minlikes >= maxlikes:
-        raise Exception("The minimum amount of likes can't be greater than the amount of maximum likes")
+        if os.path.sep in output:
+            outdir = os.path.dirname(output)
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
 
-    if not output and args.presearch: output = f"{youtube_id}.comments"
-    elif not output and not args.presearch: output = youtube_id
-    else: output = args.output
+        print('\nDownloading Youtube comments for video:', youtube_id)
+        downloader = YoutubeCommentDownloader()
+        generator = (
+            downloader.get_comments(youtube_id, args.sort, args.language)
+            if youtube_id
+            else downloader.get_comments_from_url(youtube_url, args.sort, args.language)
+        )
+        count = 0
+        presearch_founds = 0    
+        
+        with io.open(output, 'w', encoding='utf8') as fp:
+            start_time = time.time()
+            for comment in generator:
+                comment_json = json.dumps(comment, ensure_ascii=False)
+                count += 1
+                sys.stdout.flush()
+                if args.presearch:
 
-    if os.path.sep in output:
-        outdir = os.path.dirname(output)
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
+                    if limit != -1 and count + 1 >= limit: break
 
-    print('\nDownloading Youtube comments for video:', youtube_id)
-    downloader = YoutubeCommentDownloader()
-    generator = (
-        downloader.get_comments(youtube_id, args.sort, args.language)
-        if youtube_id
-        else downloader.get_comments_from_url(youtube_url, args.sort, args.language)
-    )
-    count = 0
-    presearch_founds = 0    
-    
-    with io.open(output, 'w', encoding='utf8') as fp:
-        start_time = time.time()
-        for comment in generator:
-            comment_json = json.dumps(comment, ensure_ascii=False)
-            count += 1
-            sys.stdout.flush()
-            if args.presearch:
-
-                if limit != -1 and count + 1 >= limit: break
-
-                if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
-                elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
-                elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
-
-                if author != None:
-                    if args.author != None and author != comment["author"]: continue
-                    elif args.authorincl != None and author not in comment["author"]: continue
-                    elif args.authorexcl != None and author in comment["author"]: continue
-                    elif args.authorexclmatch != None and author == comment["author"]: continue
-
-                if text != None:
-                    if args.comment != None and text != comment["text"]: continue
-                    elif args.commentincl != None and text not in comment["text"]: continue
-                    elif args.commentexcl != None and text in comment["text"]: continue
-                    elif args.commentexclmatch != None and text == comment["text"]:continue
-
-                if heart != HEART_EITHER:
-                    if heart == HEART_TRUE and not comment["heart"]: continue
-                    elif heart == HEART_FALSE and comment["heart"]: continue
-
-                try:
-                    if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
-                    elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
-                except ValueError:
-                    if not args.quiet:
-                        print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
-
-                print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
-                presearch_founds += 1
-                
-            else:
-                print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
-                if not args.quiet and limit != -1:
-                    printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
-                elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
-                elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
-
-                if limit != -1 and count >= limit: break
-
-    if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-    elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
-    else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
-
-    if not args.presearch:
-        start_time = time.time()
-        print("Starting filtering", end="..." if args.quiet else "\n")
-        if not args.quiet:
-            if author != None:
-                print(f"[AUTHOR] {author}")
-            if args.verbose:
-                if args.author != None: print(f"[AUTHOR SETTING] author match")
-                elif args.authorincl != None: print(f"[AUTHOR SETTING] author inclusive")
-                elif args.authorexcl != None: print(f"[AUTHOR SETTING] author exclusive")
-                elif args.authorexclmatch != None: print(f"[AUTHOR SETTING] author exclusive match")
-
-            if text != None: print(f"[TEXT] {author}")
-            if args.verbose:
-                if args.comment != None: print(f"[TEXT SETTING] text match")
-                elif args.commentincl != None: print(f"[TEXT SETTING] text inclusive")
-                elif args.commentexcl != None: print(f"[TEXT SETTING] text exclusive")
-                elif args.commentexclmatch != None: print(f"[TEXT SETTING] text exclusive match")
-
-            if heart == HEART_EITHER: print("[HEART] All")
-            else: print(f"[HEART] {str(heart).upper()}")
-
-            print(f"[MINLIKES] {str(minlikes)}")
-            print(f"[MAXLIKES] {str(maxlikes) if maxlikes != -1 else 'no limit'}")
-
-        with open(output, "r", encoding="utf8") as fp:
-            if os.path.exists(output + ".comments"):
-                os.remove(output + ".comments")
-            with open(output + ".comments", "a", encoding="utf8") as ap:
-                count = 0
-                while True:
-                    count += 1
-                    line = fp.readline()
-                    if not line: break
-                    line_json = json.loads(line)
+                    if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
+                    elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
+                    elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
 
                     if author != None:
-                        if args.author != None and author != line_json["author"]: continue
-                        elif args.authorincl != None and author not in line_json["author"]: continue
-                        elif args.authorexcl != None and author in line_json["author"]: continue
-                        elif args.authorexclmatch != None and author == line_json["author"]: continue
+                        if args.author != None and author != comment["author"]: continue
+                        elif args.authorincl != None and author not in comment["author"]: continue
+                        elif args.authorexcl != None and author in comment["author"]: continue
+                        elif args.authorexclmatch != None and author == comment["author"]: continue
 
                     if text != None:
-                        if args.comment != None and text != line_json["text"]: continue
-                        elif args.commentincl != None and text not in line_json["text"]: continue
-                        elif args.commentexcl != None and text in line_json["text"]: continue
-                        elif args.commentexclmatch != None and text == line_json["text"]: continue
+                        if args.comment != None and text != comment["text"]: continue
+                        elif args.commentincl != None and text not in comment["text"]: continue
+                        elif args.commentexcl != None and text in comment["text"]: continue
+                        elif args.commentexclmatch != None and text == comment["text"]:continue
 
                     if heart != HEART_EITHER:
-                        if heart == HEART_TRUE and not line_json["heart"]: continue
-                        elif heart == HEART_FALSE and line_json["heart"]: continue
+                        if heart == HEART_TRUE and not comment["heart"]: continue
+                        elif heart == HEART_FALSE and comment["heart"]: continue
 
                     try:
-                        if maxlikes != -1 and not (minlikes <= int(line_json["votes"]) <= maxlikes): continue
-                        elif maxlikes == -1 and not (minlikes <= int(line_json["votes"])): continue
+                        if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
+                        elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
                     except ValueError:
                         if not args.quiet:
-                            print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({line_json['votes']})")
+                            print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
 
-                    if args.verbose: print(f"[ITERATION] {count} | Adding line...")
-                    ap.write(line)
-        if os.path.exists(output) and not args.presearch: os.remove(output)
+                    print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                    presearch_founds += 1
+                    
+                else:
+                    print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+                    if not args.quiet and limit != -1:
+                        printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
+                    elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
+                    elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
+
+                    if limit != -1 and count >= limit: break
+
         if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-        elif args.quiet: print("Done!")
+        elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
         else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
 
-    if args.format:
-        print("Formatting to json", end="..." if args.quiet else "\n")
-        if not args.quiet:
-            print('Reading and converting the data...', end="\n" if args.verbose else "")
-        data = []
-        if args.verbose:
-            printProgressBar(0, limit, prefix='Progress:', suffix='Converting ' + str(0) + ' line(s)', length=50)
-        start_time = time.time()
-        with open(f"{output}.comments", 'r', encoding='utf8') as r:
-            c = 0
-            while True:
-                line = r.readline()
-                if not line: break
-                data.append(json.loads(line))
-                c += 1
+        if not args.presearch:
+            start_time = time.time()
+            print("Starting filtering", end="..." if args.quiet else "\n")
+            if not args.quiet:
+                if author != None:
+                    print(f"[AUTHOR] {author}")
                 if args.verbose:
-                    printProgressBar(c, limit, prefix='Progress:', suffix='Converting ' + str(c) + ' line(s)', length=50)
-        if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-        elif not args.quiet: print('Done! [{:.2f} seconds]'.format(time.time() - start_time))
+                    if args.author != None: print(f"[AUTHOR SETTING] author match")
+                    elif args.authorincl != None: print(f"[AUTHOR SETTING] author inclusive")
+                    elif args.authorexcl != None: print(f"[AUTHOR SETTING] author exclusive")
+                    elif args.authorexclmatch != None: print(f"[AUTHOR SETTING] author exclusive match")
 
-        if not args.quiet:
-            print('Writing and saving the data...', end="\n" if args.verbose else "")
-        if args.verbose:
-            printProgressBar(0, 1, prefix='Progress:', suffix='Writing line ' + str(0), length=50)
-        start_time = time.time()
-        json_data = json.dumps(data, indent=4)
-        with open(f"{output}.comments", 'w', encoding='utf8') as r:
-            r.write(json_data)
+                if text != None: print(f"[TEXT] {author}")
+                if args.verbose:
+                    if args.comment != None: print(f"[TEXT SETTING] text match")
+                    elif args.commentincl != None: print(f"[TEXT SETTING] text inclusive")
+                    elif args.commentexcl != None: print(f"[TEXT SETTING] text exclusive")
+                    elif args.commentexclmatch != None: print(f"[TEXT SETTING] text exclusive match")
+
+                if heart == HEART_EITHER: print("[HEART] All")
+                else: print(f"[HEART] {str(heart).upper()}")
+
+                print(f"[MINLIKES] {str(minlikes)}")
+                print(f"[MAXLIKES] {str(maxlikes) if maxlikes != -1 else 'no limit'}")
+
+            with open(output, "r", encoding="utf8") as fp:
+                if os.path.exists(output + ".comments"):
+                    os.remove(output + ".comments")
+                with open(output + ".comments", "a", encoding="utf8") as ap:
+                    count = 0
+                    while True:
+                        count += 1
+                        line = fp.readline()
+                        if not line: break
+                        line_json = json.loads(line)
+
+                        if author != None:
+                            if args.author != None and author != line_json["author"]: continue
+                            elif args.authorincl != None and author not in line_json["author"]: continue
+                            elif args.authorexcl != None and author in line_json["author"]: continue
+                            elif args.authorexclmatch != None and author == line_json["author"]: continue
+
+                        if text != None:
+                            if args.comment != None and text != line_json["text"]: continue
+                            elif args.commentincl != None and text not in line_json["text"]: continue
+                            elif args.commentexcl != None and text in line_json["text"]: continue
+                            elif args.commentexclmatch != None and text == line_json["text"]: continue
+
+                        if heart != HEART_EITHER:
+                            if heart == HEART_TRUE and not line_json["heart"]: continue
+                            elif heart == HEART_FALSE and line_json["heart"]: continue
+
+                        try:
+                            if maxlikes != -1 and not (minlikes <= int(line_json["votes"]) <= maxlikes): continue
+                            elif maxlikes == -1 and not (minlikes <= int(line_json["votes"])): continue
+                        except ValueError:
+                            if not args.quiet:
+                                print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({line_json['votes']})")
+
+                        if args.verbose: print(f"[ITERATION] {count} | Adding line...")
+                        ap.write(line)
+            if os.path.exists(output) and not args.presearch: os.remove(output)
+            if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+            elif args.quiet: print("Done!")
+            else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+
+        if args.format:
+            print("Formatting to json", end="..." if args.quiet else "\n")
+            if not args.quiet:
+                print('Reading and converting the data...', end="\n" if args.verbose else "")
+            data = []
             if args.verbose:
-                printProgressBar(1, 1, prefix='Progress:', suffix='Writing line ' + str(c), length=50)
+                printProgressBar(0, limit, prefix='Progress:', suffix='Converting ' + str(0) + ' line(s)', length=50)
+            start_time = time.time()
+            with open(f"{output}.comments", 'r', encoding='utf8') as r:
+                c = 0
+                while True:
+                    line = r.readline()
+                    if not line: break
+                    data.append(json.loads(line))
+                    c += 1
+                    if args.verbose:
+                        printProgressBar(c, limit, prefix='Progress:', suffix='Converting ' + str(c) + ' line(s)', length=50)
+            if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+            elif not args.quiet: print('Done! [{:.2f} seconds]'.format(time.time() - start_time))
 
-        if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-        elif args.quiet: print("Done!")
-        else: print('Done! [{:.2f} seconds]'.format(time.time() - start_time))
+            if not args.quiet:
+                print('Writing and saving the data...', end="\n" if args.verbose else "")
+            if args.verbose:
+                printProgressBar(0, 1, prefix='Progress:', suffix='Writing line ' + str(0), length=50)
+            start_time = time.time()
+            json_data = json.dumps(data, indent=4)
+            with open(f"{output}.comments", 'w', encoding='utf8') as r:
+                r.write(json_data)
+                if args.verbose:
+                    printProgressBar(1, 1, prefix='Progress:', suffix='Writing line ' + str(c), length=50)
 
-        print()
+            if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+            elif args.quiet: print("Done!")
+            else: print('Done! [{:.2f} seconds]'.format(time.time() - start_time))
+
+            print()
             
-    # except Exception as e:
-    #     print('Error:', str(e))
-    #     sys.exit(1)
+    except Exception as e:
+        print('Error:', str(e))
+        sys.exit(1)

@@ -166,3 +166,4 @@ class YoutubeCommentDownloader:
             elif isinstance(current_item, list):
                 for value in current_item:
                     stack.append(value)
+                    

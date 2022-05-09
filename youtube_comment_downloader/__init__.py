@@ -103,56 +103,72 @@ def main(argv=None):
     presearch_founds = 0
     
     with io.open(output, 'w', encoding='utf8') as fp:
+        sys.stdout.write('Downloaded %d comment(s)\r' % count)
+        sys.stdout.flush()
         start_time = time.time()
         for comment in generator:
-            comment_str = json.dumps(comment, ensure_ascii=False)
+            comment_json = json.dumps(comment, ensure_ascii=False)
+            print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
             count += 1
-            if args.presearch:
+            sys.stdout.write('Downloaded %d comment(s)\r' % count)
+            sys.stdout.flush()
+            if limit and count >= limit:
+                break
+    print('\n[{:.2f} seconds] Done!'.format(time.time() - start_time))
+    
+    
+    # with io.open(output, 'w', encoding='utf8') as fp:
+    #     start_time = time.time()
+    #     for comment in generator:
+    #         comment_json = json.dumps(comment, ensure_ascii=False)
+    #         count += 1
+    #         sys.stdout.flush()
+    #         if args.presearch:
 
-                if limit != -1 and count + 1 >= limit: break
+    #             if limit != -1 and count + 1 >= limit: break
 
-                if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
-                elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
-                elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
+    #             if not args.quiet and limit != -1: printProgressBar(count, limit, prefix='Progress:', suffix=f"Matched {presearch_founds}/{count} comment(s)", length=50)
+    #             elif args.quiet: print(f"Progress: {count}/{limit}, and found {presearch_founds}", end="\r")
+    #             elif limit == -1: print(f"Downloaded {count} and found {presearch_founds} comment(s)...", end="\r")
 
-                if author != None:
-                    if args.author != None and author != comment["author"]: continue
-                    elif args.authorincl != None and author not in comment["author"]: continue
-                    elif args.authorexcl != None and author in comment["author"]: continue
-                    elif args.authorexclmatch != None and author == comment["author"]: continue
+    #             if author != None:
+    #                 if args.author != None and author != comment["author"]: continue
+    #                 elif args.authorincl != None and author not in comment["author"]: continue
+    #                 elif args.authorexcl != None and author in comment["author"]: continue
+    #                 elif args.authorexclmatch != None and author == comment["author"]: continue
 
-                if text != None:
-                    if args.comment != None and text != comment["text"]: continue
-                    elif args.commentincl != None and text not in comment["text"]: continue
-                    elif args.commentexcl != None and text in comment["text"]: continue
-                    elif args.commentexclmatch != None and text == comment["text"]:continue
+    #             if text != None:
+    #                 if args.comment != None and text != comment["text"]: continue
+    #                 elif args.commentincl != None and text not in comment["text"]: continue
+    #                 elif args.commentexcl != None and text in comment["text"]: continue
+    #                 elif args.commentexclmatch != None and text == comment["text"]:continue
 
-                if heart != HEART_EITHER:
-                    if heart == HEART_TRUE and not comment["heart"]: continue
-                    elif heart == HEART_FALSE and comment["heart"]: continue
+    #             if heart != HEART_EITHER:
+    #                 if heart == HEART_TRUE and not comment["heart"]: continue
+    #                 elif heart == HEART_FALSE and comment["heart"]: continue
 
-                try:
-                    if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
-                    elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
-                except ValueError:
-                    if not args.quiet:
-                        print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
+    #             try:
+    #                 if maxlikes != -1 and not (minlikes <= int(comment["votes"]) <= maxlikes): continue
+    #                 elif maxlikes == -1 and not (minlikes <= int(comment["votes"])): continue
+    #             except ValueError:
+    #                 if not args.quiet:
+    #                     print(f"[WARNING] Iteration {count}'s like count is greater than 999 ({comment['votes']})")
 
-                print(comment_str.decode('utf-8') if isinstance(comment_str, bytes) else comment_str, file=fp)
-                presearch_founds += 1
+    #             print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+    #             presearch_founds += 1
                 
-            else:
-                print(comment_str.decode('utf-8') if isinstance(comment_str, bytes) else comment_str, file=fp)
-                if not args.quiet and limit != -1:
-                    printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
-                elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
-                elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
+    #         else:
+    #             print(comment_json.decode('utf-8') if isinstance(comment_json, bytes) else comment_json, file=fp)
+    #             if not args.quiet and limit != -1:
+    #                 printProgressBar(count, limit, prefix='Progress:', suffix='Downloaded ' + str(count) + ' comment(s)', length=50)
+    #             elif args.quiet: print(f"Progress: {count}/{limit}", end="\r")
+    #             elif limit == -1: print(f"Downloaded {count} comment(s)...", end="\r")
 
-                if limit != -1 and count >= limit: break
+    #             if limit != -1 and count >= limit: break
 
-    if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
-    elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
-    else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
+    # if args.verbose: print('Done in {:.2f} seconds\n'.format(time.time() - start_time))
+    # elif args.quiet: print(f"Progress: {count}/{limit}...Done!")
+    # else: print('Done! [{:.2f} seconds]\n'.format(time.time() - start_time))
 
     if not args.presearch:
         start_time = time.time()

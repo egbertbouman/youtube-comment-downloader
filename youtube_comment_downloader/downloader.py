@@ -20,6 +20,7 @@ SORT_BY_RECENT = 1
 YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
 YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
 
+
 class YoutubeCommentDownloader:
 
     def __init__(self):
@@ -60,7 +61,7 @@ class YoutubeCommentDownloader:
 
         data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
-        section = next(self.search_dict(data, 'itemSectionRenderer'), None)
+        section = next(self.search_dict(data['contents'], 'itemSectionRenderer'), None)
         renderer = next(self.search_dict(section, 'continuationItemRenderer'), None) if section else None
         if not renderer:
             # Comments disabled?
@@ -144,4 +145,3 @@ class YoutubeCommentDownloader:
             elif isinstance(current_item, list):
                 for value in current_item:
                     stack.append(value)
-                    

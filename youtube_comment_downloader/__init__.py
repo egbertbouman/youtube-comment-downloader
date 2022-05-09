@@ -189,19 +189,19 @@ def main(argv=None):
     elif args.append:
         with open(append_file, "r", encoding="utf8") as apf:
             # First line is latest.
-            latest_comment_id = apf.readline().rstrip()
+            latest_comment_id = json.loads(apf.readline().rstrip())["cid"]
         
         with io.open(f"{output}.tmp", 'w', encoding='utf8') as fp:
             start_time = time.time()
             for comment in generator:
                 comment_json = json.dumps(comment, ensure_ascii=False)
-                count += 1
-                sys.stdout.flush()
                 
-                print(comment_json)
-                print(type(comment_json))
-                break
-                                    
+                if latest_comment_id == json.loads(comment_json)["cid"]: 
+                    print("APPEND POINT FOUND")
+                    break
+                
+                count += 1
+                sys.stdout.flush()                                    
                 if args.presearch:
 
                     if limit != -1 and count + 1 >= limit: break

@@ -406,7 +406,3 @@ def main(argv=None):
             else: print('Done! [{:.2f} seconds]'.format(time.time() - start_time))
 
             print()
-            
-    # except Exception as e:
-    #     print('Error:', str(e))
-    #     sys.exit(1)

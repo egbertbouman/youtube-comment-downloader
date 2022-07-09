@@ -37,12 +37,8 @@ def main(argv=None):
     parser.add_argument('--limit', '-l', default=0,type=int, help='Limit the number of comments. By default it downloads until break')
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
-    parser.add_argument('--url', '-u', nargs="+", help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
+    parser.add_argument('--url', '-u', nargs="+", default=[], help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
     parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file, can not be done with a formatted file, but can be formatted afterwards')
-
-    # OBSOLETE ARGUMENTS
-    #parser.add_argument("--thread", "-t", type=int, default=DEFAULT_NUMBER_OF_THREADS, help=f"Set the amount of threads that download and write at the same time. (Default {DEFAULT_NUMBER_OF_THREADS})")
-    #parser.add_argument("--mode", "-M", type=str, default="w", help="Set the writing mode of the download file. (r and r+ not allowed, default: w)")
 
     # SELECTORS
     parser.add_argument("--heart", "-H", type=int, default=HEART_EITHER, help=f"If set {HEART_TRUE}, only saves comment with hearts, if {HEART_FALSE} it saves comments only without a heart. Default: {HEART_EITHER} (Saves all).")
@@ -89,7 +85,7 @@ def main(argv=None):
             append_file = args.append
     
     print(args)
-    if youtube_id is None and youtube_url is None:
+    if youtube_id == [] and youtube_url == []:
         parser.print_usage()
         raise ValueError('you need to specify a Youtube ID/URL and an output filename')
     link_max = 0 if youtube_id is None else len(youtube_id) + 0 if youtube_url is None else len(youtube_url)

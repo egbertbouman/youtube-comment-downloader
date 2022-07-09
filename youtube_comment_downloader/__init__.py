@@ -37,7 +37,7 @@ def main(argv=None):
     parser.add_argument('--limit', '-l', default=0,type=int, help='Limit the number of comments. By default it downloads until break')
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
-    parser.add_argument('--url', '-u', nargs="+", default=[], help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
+    # parser.add_argument('--url', '-u', nargs="+", default=[], help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
     parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file, can not be done with a formatted file, but can be formatted afterwards')
 
     # SELECTORS
@@ -73,7 +73,7 @@ def main(argv=None):
         print("-==#" + "="*(len(HEAD[0]) - 6) + "#==-\n")
 
     youtube_id = args.youtubeid
-    youtube_url = args.url
+    # youtube_url = args.url
     output = args.output
     limit = args.limit
     heart = args.heart
@@ -84,11 +84,10 @@ def main(argv=None):
         else:
             append_file = args.append
     
-    print(args)
-    if youtube_id == [] and youtube_url == []:
+    if youtube_id == []: #and youtube_url == []:
         parser.print_usage()
-        raise ValueError('you need to specify a Youtube ID/URL and an output filename')
-    link_max = 0 if youtube_id is None else len(youtube_id) + 0 if youtube_url is None else len(youtube_url)
+        raise ValueError('you need to specify a Youtube ID')
+    link_max = 0 if youtube_id is None else len(youtube_id) # + 0 if youtube_url is None else len(youtube_url)
     
 
     if args.authorincl: author = args.authorincl
@@ -107,18 +106,20 @@ def main(argv=None):
     if maxlikes != -1 and minlikes >= maxlikes:
         raise Exception("The minimum amount of likes can't be greater than the amount of maximum likes")
 
-    if not output and args.presearch: output = f"{youtube_id}.comments"
-    elif not output and not args.presearch: output = youtube_id
-    else: output = args.output
-
-    if os.path.sep in output:
-        outdir = os.path.dirname(output)
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
-
     link_n = 1
-    for link in youtube_id + youtube_url:
-        print(f'\nDownloading Youtube comments for video: {link}' + "" if link_max == 1 else f" [{link_n}/{link_max}]")
+    for link in youtube_id: #+ youtube_url:
+        print(f'\nDownloading Youtube comments for video: {link}' + ("" if link_max == 1 else f" [{link_n}/{link_max}]"))
+        
+        output = None
+        if not output and args.presearch: output = f"{link}.comments"
+        elif not output and not args.presearch: output = link
+        else: output = args.output
+
+        if os.path.sep in output:
+            outdir = os.path.dirname(output)
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+                
         link_n += 1
         downloader = YoutubeCommentDownloader()
         generator = (

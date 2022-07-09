@@ -32,12 +32,12 @@ def main(argv=None):
 
     # DEFAULT ARGUMENTS 
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('youtubeid', nargs="*", help='ID of Youtube videos for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
+    parser.add_argument('youtubeid', nargs="*", default=[], help='ID of Youtube videos for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
     parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
     parser.add_argument('--limit', '-l', default=0,type=int, help='Limit the number of comments. By default it downloads until break')
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
-    parser.add_argument('--url', '-u', nargs="+",  help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
+    parser.add_argument('--url', '-u', nargs="+", default=[] , help='Youtube URL for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
     parser.add_argument('--append',  help='Appends the new comments into an existing file. Raises an error if trying to append an empty file, can not be done with a formatted file, but can be formatted afterwards')
 
     # OBSOLETE ARGUMENTS
@@ -88,7 +88,7 @@ def main(argv=None):
         else:
             append_file = args.append
     
-    if youtube_id is None and youtube_url is None:
+    if youtube_id is [] and youtube_url is []:
         parser.print_usage()
         raise ValueError('you need to specify a Youtube ID/URL and an output filename')
     link_max = len(youtube_id + youtube_url)

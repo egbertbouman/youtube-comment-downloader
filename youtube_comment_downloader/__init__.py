@@ -33,7 +33,7 @@ def main(argv=None):
     # DEFAULT ARGUMENTS 
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     parser.add_argument('youtubeid', nargs="*", help='ID of Youtube videos for which to download the comments. If more than one are given and no limit is set, you can end the download for a video by pressing ctrl+c, otherwise it will stick to the limit')
-    parser.add_argument('--output', '-o', help='Output filename (output format is line delimited JSON)')
+    parser.add_argument('--output', '-o', nargs="+", default=[], help='Output filename (output format is line delimited JSON). Will output a file named <output>.comments')
     parser.add_argument('--limit', '-l', default=0,type=int, help='Limit the number of comments. By default it downloads until break')
     parser.add_argument('--language', type=str, default=None, help='Language for Youtube generated text (e.g. en)')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT, help='Whether to download popular (0) or recent comments (1). Defaults to 1')
@@ -74,7 +74,6 @@ def main(argv=None):
 
     youtube_id = args.youtubeid
     # youtube_url = args.url
-    output = args.output
     limit = args.limit
     heart = args.heart
     
@@ -88,6 +87,9 @@ def main(argv=None):
         parser.print_usage()
         raise ValueError('you need to specify a Youtube ID')
     link_max = 0 if youtube_id is None else len(youtube_id) # + 0 if youtube_url is None else len(youtube_url)
+    
+    if args.output != [] and len(args.output) != link_max:
+        raise ValueError('you need to specify the same amount of output names as inputs')
     
 
     if args.authorincl: author = args.authorincl
@@ -111,9 +113,9 @@ def main(argv=None):
         print(f'\nDownloading Youtube comments for video: {link}' + ("" if link_max == 1 else f" [{link_n}/{link_max}]"))
         
         output = None
-        if not output and args.presearch: output = f"{link}.comments"
-        elif not output and not args.presearch: output = link
-        else: output = args.output
+        if args.output == [] and args.presearch: output = f"{link}.comments"
+        elif args.output == [] and not args.presearch: output = link
+        else: output = args.output[link_n - 1]
 
         if os.path.sep in output:
             outdir = os.path.dirname(output)

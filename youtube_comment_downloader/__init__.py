@@ -88,10 +88,11 @@ def main(argv=None):
         else:
             append_file = args.append
     
-    link_max = len(youtube_id + youtube_url)
-    if link_max < 1:
+    if youtube_id is None and youtube_url is None:
         parser.print_usage()
         raise ValueError('you need to specify a Youtube ID/URL and an output filename')
+    link_max = len(youtube_id + youtube_url)
+    
 
     if args.authorincl: author = args.authorincl
     elif args.authorexcl: author = args.authorexcl

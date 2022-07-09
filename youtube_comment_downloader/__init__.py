@@ -88,6 +88,7 @@ def main(argv=None):
         else:
             append_file = args.append
     
+    print(args)
     if youtube_id is None and youtube_url is None:
         parser.print_usage()
         raise ValueError('you need to specify a Youtube ID/URL and an output filename')

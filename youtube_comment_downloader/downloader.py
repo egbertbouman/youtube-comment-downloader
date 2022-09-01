@@ -91,12 +91,13 @@ class YoutubeCommentDownloader:
                 for item in action.get('continuationItems', []):
                     if action['targetId'] == 'comments-section':
                         # Process continuations for comments and replies.
-                        continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')]
+                        continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')] if len([g for g in self.search_dict(item, "viewReplies")]) != 0 else []
                     if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
                         # Process the 'Show more replies' button
-                        continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
-
+                        pass
+            
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
+                reply = comment["actionButtons"]["commentActionButtonsRenderer"]["likeButton"]["toggleButtonRenderer"]["accessibilityData"]["accessibilityData"]["label"]
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                           'time': comment['publishedTimeText']['runs'][0]['text'],
@@ -104,7 +105,8 @@ class YoutubeCommentDownloader:
                           'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
                           'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                           'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
-                          'heart': next(self.search_dict(comment, 'isHearted'), False)}
+                          'heart': next(self.search_dict(comment, 'isHearted'), False),
+                          'reply': 'reply' in reply}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()

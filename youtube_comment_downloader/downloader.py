@@ -97,7 +97,6 @@ class YoutubeCommentDownloader:
                         pass
             
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
-                reply = comment["actionButtons"]["commentActionButtonsRenderer"]["likeButton"]["toggleButtonRenderer"]["accessibilityData"]["accessibilityData"]["label"]
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                           'time': comment['publishedTimeText']['runs'][0]['text'],
@@ -106,7 +105,7 @@ class YoutubeCommentDownloader:
                           'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                           'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
                           'heart': next(self.search_dict(comment, 'isHearted'), False),
-                          'reply': 'reply' in reply}
+                          'reply': '.' in comment['commentId']}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()

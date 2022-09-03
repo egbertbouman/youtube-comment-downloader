@@ -91,10 +91,10 @@ class YoutubeCommentDownloader:
                 for item in action.get('continuationItems', []):
                     if action['targetId'] == 'comments-section':
                         # Process continuations for comments and replies.
-                        continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')] if len([g for g in self.search_dict(item, "viewReplies")]) != 0 else []
+                        continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')]
                     if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
                         # Process the 'Show more replies' button
-                        pass
+                        continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
             
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
                 result = {'cid': comment['commentId'],

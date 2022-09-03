@@ -95,7 +95,7 @@ class YoutubeCommentDownloader:
                     if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
                         # Process the 'Show more replies' button
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
-
+            
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
@@ -104,7 +104,8 @@ class YoutubeCommentDownloader:
                           'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
                           'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                           'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
-                          'heart': next(self.search_dict(comment, 'isHearted'), False)}
+                          'heart': next(self.search_dict(comment, 'isHearted'), False),
+                          'reply': '.' in comment['commentId']}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()

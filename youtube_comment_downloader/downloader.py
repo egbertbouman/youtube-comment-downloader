@@ -23,6 +23,7 @@ class YoutubeCommentDownloader:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers['User-Agent'] = USER_AGENT
+        self.session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
 
     def ajax_request(self, endpoint, ytcfg, retries=5, sleep=20):
         url = 'https://www.youtube.com' + endpoint['commandMetadata']['webCommandMetadata']['apiUrl']
@@ -44,10 +45,6 @@ class YoutubeCommentDownloader:
 
     def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
         response = self.session.get(youtube_url)
-
-        if 'consent' in response.request.url or 'uxe=' in response.request.url:
-            self.session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
-            response = self.session.get(youtube_url)
 
         html = response.text
         ytcfg = json.loads(self.regex_search(html, YT_CFG_RE, default=''))

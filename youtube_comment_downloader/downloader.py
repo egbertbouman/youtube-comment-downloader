@@ -45,7 +45,7 @@ class YoutubeCommentDownloader:
     def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
         response = self.session.get(youtube_url)
 
-        if 'uxe=' in response.request.url:
+        if 'consent' in response.request.url or 'uxe=' in response.request.url:
             self.session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
             response = self.session.get(youtube_url)
 
@@ -58,14 +58,17 @@ class YoutubeCommentDownloader:
 
         data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
-        section = next(self.search_dict(data['contents'], 'itemSectionRenderer'), None)
+        section = next(self.search_dict(data, 'itemSectionRenderer'), None)
         renderer = next(self.search_dict(section, 'continuationItemRenderer'), None) if section else None
         if not renderer:
             # Comments disabled?
             return
 
-        needs_sorting = sort_by != SORT_BY_POPULAR
-        continuations = [renderer['continuationEndpoint']]
+        sort_menu = next(self.search_dict(data, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
+        if not sort_menu or sort_by >= len(sort_menu):
+            raise RuntimeError('Failed to set sorting')
+        continuations = [sort_menu[sort_by]['serviceEndpoint']]
+
         while continuations:
             continuation = continuations.pop()
             response = self.ajax_request(continuation, ytcfg)
@@ -77,25 +80,17 @@ class YoutubeCommentDownloader:
             if error:
                 raise RuntimeError('Error returned from server: ' + error)
 
-            if needs_sorting:
-                sort_menu = next(self.search_dict(response, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
-                if sort_by < len(sort_menu):
-                    continuations = [sort_menu[sort_by]['serviceEndpoint']]
-                    needs_sorting = False
-                    continue
-                raise RuntimeError('Failed to set sorting')
-
             actions = list(self.search_dict(response, 'reloadContinuationItemsCommand')) + \
                       list(self.search_dict(response, 'appendContinuationItemsAction'))
             for action in actions:
                 for item in action.get('continuationItems', []):
-                    if action['targetId'] == 'comments-section':
+                    if action['targetId'] in ['comments-section', 'engagement-panel-comments-section']:
                         # Process continuations for comments and replies.
                         continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')]
                     if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
                         # Process the 'Show more replies' button
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
-            
+
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),

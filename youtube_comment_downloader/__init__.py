@@ -5,7 +5,7 @@ import os
 import sys
 import time
 
-from .downloader import YoutubeCommentDownloader, SORT_BY_RECENT
+from .downloader import YoutubeCommentDownloader, SORT_BY_POPULAR, SORT_BY_RECENT
 
 
 def main(argv = None):

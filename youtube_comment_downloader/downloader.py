@@ -7,6 +7,8 @@ import time
 import dateparser
 import requests
 
+from .comment import Comment
+
 YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
@@ -88,7 +90,9 @@ class YoutubeCommentDownloader:
                         # Process the 'Show more replies' button
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
 
+
             for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
+                
                 result = {'cid': comment['commentId'],
                           'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
                           'time': comment['publishedTimeText']['runs'][0]['text'],
@@ -115,6 +119,40 @@ class YoutubeCommentDownloader:
 
                 yield result
             time.sleep(sleep)
+
+    def get_comments_from_url_json_file(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1,indent=4,output_limit=None):
+        comments = self.get_comments_from_url(youtube_url, sort_by=sort_by,language=language,sleep=sleep)
+        comments =  list(comments)
+
+        with open('output.json','w') as output:
+            output.write("""{\n"comments": [""")
+            if type(output_limit) == int:
+                for idx in range(len(comments))[:output_limit]:
+                    comment = comments[idx]
+                    output.write((json.dumps(comment,indent=indent)))
+                    if not (idx == output_limit -1) :
+                        output.write( ',\n')
+                    
+            else:
+                for idx in range(len(comments)):
+                    comment = comments[idx]
+                    output.write((json.dumps(comment,indent=indent)))
+                    if not (idx == len(comments) -1) :
+                        output.write( ',\n')
+
+            output.write("""    ]\n}""")          
+        return None
+        # else:
+
+    def get_comments_from_url_prettier(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1,indent=4,output_limit=None):
+        comments = self.get_comments_from_url(youtube_url, sort_by=sort_by,language=language,sleep=sleep)
+
+        if type(output_limit) != int:
+            for comment in list(comments):
+                yield Comment(comment)
+        else:
+            for comment in list(comments)[:output_limit]:
+                yield Comment(comment)
 
     @staticmethod
     def regex_search(text, pattern, group=1, default=None):

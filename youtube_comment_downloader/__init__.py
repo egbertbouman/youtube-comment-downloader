@@ -7,10 +7,15 @@ import time
 
 from .downloader import YoutubeCommentDownloader, SORT_BY_POPULAR, SORT_BY_RECENT
 
+INDENT = 4
 
-def data_to_fp(data, fp, indent=None):
-    json_str = json.dumps(data, ensure_ascii=False, indent=indent)
-    print(json_str.decode('utf-8') if isinstance(json_str, bytes) else json_str, file=fp)
+
+def to_json(comment, indent=None):
+    comment_str = json.dumps(comment, ensure_ascii=False, indent=indent)
+    if indent is None:
+        return comment_str
+    padding = ' ' * (2 * indent) if indent else ''
+    return ''.join(padding + line for line in comment_str.splitlines(True))
 
 
 def main(argv = None):
@@ -51,24 +56,27 @@ def main(argv = None):
             else downloader.get_comments_from_url(youtube_url, args.sort, args.language)
         )
 
-        count = 0
-        comments = []
+        count = 1
         with io.open(output, 'w', encoding='utf8') as fp:
             sys.stdout.write('Downloaded %d comment(s)\r' % count)
             sys.stdout.flush()
             start_time = time.time()
-            for comment in generator:
-                if pretty:
-                    comments.append(comment)
-                else:
-                    data_to_fp(comment, fp)
-                count += 1
+
+            if pretty:
+                fp.write('{\n' + ' ' * INDENT + '"comments": [\n')
+
+            comment = next(generator, None)
+            while comment:
+                comment_str = to_json(comment, indent=INDENT if pretty else None)
+                comment = None if limit and count >= limit else next(generator, None)  # Note that this is the next comment
+                comment_str = comment_str + ',' if pretty and comment is not None else comment_str
+                print(comment_str.decode('utf-8') if isinstance(comment_str, bytes) else comment_str, file=fp)
                 sys.stdout.write('Downloaded %d comment(s)\r' % count)
                 sys.stdout.flush()
-                if limit and count >= limit:
-                    break
+                count += 1
+
             if pretty:
-                data_to_fp({'comments': comments}, fp, indent=4)
+                fp.write(' ' * INDENT +']\n}')
         print('\n[{:.2f} seconds] Done!'.format(time.time() - start_time))
 
     except Exception as e:

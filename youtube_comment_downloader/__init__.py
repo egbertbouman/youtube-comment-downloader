@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import time
+import re
 
 from .downloader import YoutubeCommentDownloader, SORT_BY_POPULAR, SORT_BY_RECENT
 
@@ -16,6 +17,13 @@ def to_json(comment, indent=None):
         return comment_str
     padding = ' ' * (2 * indent) if indent else ''
     return ''.join(padding + line for line in comment_str.splitlines(True))
+
+
+def sanitize_name(name):
+    name = name.replace('/', '_')
+    if os.name == 'nt':
+        name = re.sub(r'[<>:"/\|?*]|[\s.]$', '_', name)
+    return name
 
 
 def main(argv = None):
@@ -39,9 +47,18 @@ def main(argv = None):
         limit = args.limit
         pretty = args.pretty
 
-        if (not youtube_id and not youtube_url) or not output:
+        if not youtube_id and not youtube_url:
             parser.print_usage()
-            raise ValueError('you need to specify a Youtube ID/URL and an output filename')
+            raise ValueError('you need to specify a Youtube ID/URL')
+
+        downloader = YoutubeCommentDownloader()
+
+        if not output:
+            output = sanitize_name(
+                downloader.get_title(youtube_id)
+                if youtube_id
+                else downloader.get_title_from_url(youtube_url)
+            ) + ' comments.json'
 
         if os.sep in output:
             outdir = os.path.dirname(output)
@@ -49,7 +66,6 @@ def main(argv = None):
                 os.makedirs(outdir)
 
         print('Downloading Youtube comments for', youtube_id or youtube_url)
-        downloader = YoutubeCommentDownloader()
         generator = (
             downloader.get_comments(youtube_id, args.sort, args.language)
             if youtube_id

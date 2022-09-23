@@ -3,6 +3,7 @@ from __future__ import print_function
 import json
 import re
 import time
+import html
 
 import dateparser
 import requests
@@ -16,6 +17,7 @@ SORT_BY_RECENT = 1
 
 YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
 YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
+YT_VIDEO_TITLE_RE = r'<title>(.*?)</title>'
 
 
 class YoutubeCommentDownloader:
@@ -115,6 +117,19 @@ class YoutubeCommentDownloader:
 
                 yield result
             time.sleep(sleep)
+
+    def get_title(self, youtube_id, *args, **kwargs):
+        return self.get_title_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), *args, **kwargs)
+
+    def get_title_from_url(self, youtube_url):
+        response = self.session.get(youtube_url)
+        title = html.unescape(self.regex_search(response.text, YT_VIDEO_TITLE_RE, default=''))
+
+        YT_SUFFIX = ' - YouTube'
+        if title.endswith(YT_SUFFIX):
+            title = title[:-len(YT_SUFFIX)]
+
+        return title
 
     @staticmethod
     def regex_search(text, pattern, group=1, default=None):

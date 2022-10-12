@@ -97,7 +97,8 @@ class YoutubeCommentDownloader:
                           'votes': comment.get('voteCount', {}).get('simpleText', '0'),
                           'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
                           'heart': next(self.search_dict(comment, 'isHearted'), False),
-                          'reply': '.' in comment['commentId']}
+                          'reply': '.' in comment['commentId'],
+                          'vurl': youtube_url}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()

@@ -55,13 +55,20 @@ class YoutubeCommentDownloader:
 
         data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
-        section = next(self.search_dict(data, 'itemSectionRenderer'), None)
-        renderer = next(self.search_dict(section, 'continuationItemRenderer'), None) if section else None
+        item_section = next(self.search_dict(data, 'itemSectionRenderer'), None)
+        renderer = next(self.search_dict(item_section, 'continuationItemRenderer'), None) if item_section else None
         if not renderer:
             # Comments disabled?
             return
 
         sort_menu = next(self.search_dict(data, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
+        if not sort_menu:
+            # No sort menu. Maybe this is a request for community posts?
+            section_list = next(self.search_dict(data, 'sectionListRenderer'), {})
+            continuations = list(self.search_dict(section_list, 'continuationEndpoint'))
+            # Retry..
+            data = self.ajax_request(continuations[0], ytcfg) if continuations else {}
+            sort_menu = next(self.search_dict(data, 'sortFilterSubMenuRenderer'), {}).get('subMenuItems', [])
         if not sort_menu or sort_by >= len(sort_menu):
             raise RuntimeError('Failed to set sorting')
         continuations = [sort_menu[sort_by]['serviceEndpoint']]

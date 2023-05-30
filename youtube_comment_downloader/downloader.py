@@ -140,4 +140,4 @@ class YoutubeCommentDownloader:
                     else:
                         stack.append(value)
             elif isinstance(current_item, list):
-                statck.extend(current_item)
+                stack.extend(current_item)

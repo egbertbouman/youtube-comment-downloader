@@ -8,6 +8,7 @@ import dateparser
 import requests
 
 YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v={youtube_id}'
+YOUTUBE_CONSENT_URL = 'https://consent.youtube.com/save'
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
 
@@ -16,6 +17,7 @@ SORT_BY_RECENT = 1
 
 YT_CFG_RE = r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;'
 YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)'
+YT_HIDDEN_INPUT_RE = r'<input\s+type="hidden"\s+name="([A-Za-z0-9_]+)"\s+value="([A-Za-z0-9_\-\.]*)"\s*(?:required|)\s*>'
 
 
 class YoutubeCommentDownloader:
@@ -45,6 +47,12 @@ class YoutubeCommentDownloader:
 
     def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
         response = self.session.get(youtube_url)
+
+        if 'consent' in str(response.url):
+            # We may get redirected to a separate page for cookie consent. If this happens we agree automatically.
+            params = dict(re.findall(YT_HIDDEN_INPUT_RE, response.text))
+            params.update({'continue': youtube_url, 'set_eom': False, 'set_ytc': True, 'set_apyt': True})
+            response = self.session.post(YOUTUBE_CONSENT_URL, params=params)
 
         html = response.text
         ytcfg = json.loads(self.regex_search(html, YT_CFG_RE, default=''))
@@ -88,7 +96,9 @@ class YoutubeCommentDownloader:
                       list(self.search_dict(response, 'appendContinuationItemsAction'))
             for action in actions:
                 for item in action.get('continuationItems', []):
-                    if action['targetId'] in ['comments-section', 'engagement-panel-comments-section']:
+                    if action['targetId'] in ['comments-section',
+                                              'engagement-panel-comments-section',
+                                              'shorts-engagement-panel-comments-section']:
                         # Process continuations for comments and replies.
                         continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')]
                     if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:

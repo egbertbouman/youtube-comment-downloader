@@ -45,7 +45,7 @@ class YoutubeCommentDownloader:
     def get_comments(self, youtube_id, *args, **kwargs):
         return self.get_comments_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), *args, **kwargs)
 
-    def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
+    def _get_from_url(self, youtube_url, language=None):
         response = self.session.get(youtube_url)
 
         if 'consent' in str(response.url):
@@ -56,12 +56,16 @@ class YoutubeCommentDownloader:
 
         html = response.text
         ytcfg = json.loads(self.regex_search(html, YT_CFG_RE, default=''))
+        data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
+
+        return ytcfg, data
+
+    def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
+        ytcfg, data = self._get_from_url(youtube_url)
         if not ytcfg:
             return  # Unable to extract configuration
         if language:
             ytcfg['INNERTUBE_CONTEXT']['client']['hl'] = language
-
-        data = json.loads(self.regex_search(html, YT_INITIAL_DATA_RE, default=''))
 
         item_section = next(self.search_dict(data, 'itemSectionRenderer'), None)
         renderer = next(self.search_dict(item_section, 'continuationItemRenderer'), None) if item_section else None
@@ -132,6 +136,20 @@ class YoutubeCommentDownloader:
 
                 yield result
             time.sleep(sleep)
+
+    def get_count(self, youtube_id):
+        return self.get_count_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id))
+
+    def get_count_from_url(self, youtube_url):
+        _, data = self._get_from_url(youtube_url=youtube_url)
+        s = next(self.search_dict(data, 'commentCount'), None)['simpleText']
+        ss = s.split("\xa0")
+        if len(ss) == 1:
+            return int(ss[0].replace(",", ""))
+        if len(ss) == 2:
+            assert(ss[1] == "mio.")
+            return int(10**6*float(ss[0].replace(",", ".")))
+        assert(False)
 
     @staticmethod
     def regex_search(text, pattern, group=1, default=None):

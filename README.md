@@ -1,4 +1,4 @@
-# youtube-comment-downloader
+# youtube-insights
 Simple script for downloading Youtube comments without using the Youtube API. The output is in line delimited JSON.
 
 ### Installation

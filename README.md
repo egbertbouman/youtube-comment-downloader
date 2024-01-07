@@ -28,10 +28,13 @@ optional arguments:
   --youtubeid YOUTUBEID, -y YOUTUBEID    ID of Youtube video for which to download the comments
   --url URL, -u URL                      Youtube URL for which to download the comments
   --output OUTPUT, -o OUTPUT             Output filename (output format is line delimited JSON)
-  --pretty, -p                           Change the output format to indented JSON
   --limit LIMIT, -l LIMIT                Limit the number of comments
-  --language LANGUAGE, -a LANGUAGE       Language for Youtube generated text (e.g. en)
+  --language LANGUAGE, -a LANGUAGE       Language for Youtube generated text. Defaults to en.
   --sort SORT, -s SORT                   Whether to download popular (0) or recent comments (1). Defaults to 1
+  --template TEMPLATE, -t TEMPLATE
+                        Formatting template using the jsonl fields, e.g., "{author} wrote {time}: {text}". Defaults to None, which outputs the raw JSON.
+  --quote QUOTE, -q QUOTE
+                        enclose values in quotes when filling template. Defaults to False.
 ```
 
 For example:
@@ -46,6 +49,20 @@ youtube-insights --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.jsonl
 For Youtube IDs starting with - (dash) you will need to run the script with:
 `-y=idwithdash` or `--youtubeid=idwithdash`
 
+For extracting just the texts, a template can be added:
+```
+youtube-insights --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.txt --limit 10 --template "{text}"
+```
+
+Templates can also reference other JSON fields:
+```
+youtube-insights --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.txt --limit 10 --template "{author} wrote {time}: {text}"
+```
+
+To export to CSV with author, time, and text:
+```
+youtube-insights --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.csv --limit 10 --template "{author},{time},{text}" --quote True
+```
 
 ### Usage as library
 You can also use this script as a library. For instance, if you want to print out the 10 most popular comments for a particular Youtube video you can do the following:

@@ -145,7 +145,7 @@ class YoutubeCommentDownloader:
         s = next(self.search_dict(data, 'commentCount'), None)['simpleText']
         ss = s.split("\xa0")
         if len(ss) == 1:
-            return int(ss[0].replace(",", ""))
+            return int(ss[0].replace(",", "").replace(".", ""))
         if len(ss) == 2:
             assert(ss[1] == "mio.")
             return int(10**6*float(ss[0].replace(",", ".")))

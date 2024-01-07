@@ -5,8 +5,8 @@ if __package__ is None:
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
 
-import youtube_comment_downloader
+import youtube_insights
 
 
 if __name__ == '__main__':
-    youtube_comment_downloader.main()
+    youtube_insights.main()

@@ -3,22 +3,23 @@ Simple script for downloading Youtube comments without using the Youtube API. Th
 
 ### Installation
 
+Clone the git repository:
+
+```
+git clone https://github.com/schneiderkamplab/youtube-insights.git
+```
+
 Preferably inside a [python virtual environment](https://virtualenv.pypa.io/en/latest/) install this package via:
 
 ```
-pip install youtube-comment-downloader
-```
-
-Or directly from the GitHub repository:
-
-```
-pip install https://github.com/egbertbouman/youtube-comment-downloader/archive/master.zip
+cd youtube-insights
+pip install .
 ```
 
 ### Usage as command-line interface
 ```
-$ youtube-comment-downloader --help
-usage: youtube-comment-downloader [--help] [--youtubeid YOUTUBEID] [--url URL] [--output OUTPUT] [--limit LIMIT] [--language LANGUAGE] [--sort SORT]
+$ youtube-insights --help
+usage: youtube-insights [--help] [--youtubeid YOUTUBEID] [--url URL] [--output OUTPUT] [--limit LIMIT] [--language LANGUAGE] [--sort SORT]
 
 Download Youtube comments without using the Youtube API
 
@@ -35,11 +36,11 @@ optional arguments:
 
 For example:
 ```
-youtube-comment-downloader --url https://www.youtube.com/watch?v=ScMzIvxBSi4 --output ScMzIvxBSi4.json
+youtube-insights --url https://www.youtube.com/watch?v=ScMzIvxBSi4 --output ScMzIvxBSi4.jsonl
 ```
 or using the Youtube ID:
 ```
-youtube-comment-downloader --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.json
+youtube-insights --youtubeid ScMzIvxBSi4 --output ScMzIvxBSi4.jsonl
 ```
 
 For Youtube IDs starting with - (dash) you will need to run the script with:
@@ -52,7 +53,7 @@ You can also use this script as a library. For instance, if you want to print ou
 
 ```python
 from itertools import islice
-from youtube_comment_downloader import *
+from youtube_insights import *
 downloader = YoutubeCommentDownloader()
 comments = downloader.get_comments_from_url('https://www.youtube.com/watch?v=ScMzIvxBSi4', sort_by=SORT_BY_POPULAR)
 for comment in islice(comments, 10):

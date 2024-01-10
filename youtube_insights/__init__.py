@@ -18,8 +18,9 @@ def main(argv = None):
     parser.add_argument('--language', '-a', type=str, default="en", help='Language for Youtube generated text. Defaults to en.')
     parser.add_argument('--sort', '-s', type=int, default=SORT_BY_RECENT,
                         help='Whether to download popular (0) or recent comments (1). Defaults to 1')
-    parser.add_argument('--template', '-t', default=None, help='Formatting template using the jsonl fields, e.g., "{author} wrote {time}: {text}". Defaults to None, which outputs the raw JSON.')
-    parser.add_argument('--quote', '-q', default=False, help="enclose values in quotes when filling template. Defaults to False.")
+    parser.add_argument('--template', '-t', default=None, type=str, help='Formatting template using the jsonl fields, e.g., "{author} wrote {time}: {text}". Defaults to None, which outputs the raw JSON.')
+    parser.add_argument('--quote', '-q', type=bool, default=False, help="enclose values in quotes when filling template. Defaults to False.")
+    parser.add_argument('--min-length', '-m', default=None, type=int, help="include only comments of a certain minimum length. Defaults to None, i.e., include all comments.")
 
     try:
         args = parser.parse_args() if argv is None else parser.parse_args(argv)
@@ -52,10 +53,14 @@ def main(argv = None):
             else downloader.get_comments_from_url(youtube_url, args.sort, args.language)
         )
 
+        if args.template is not None:
+            args.template = eval(f"'{args.template}'")
         count = 0
         start_time = time.time()
         with io.open(output, 'w', encoding='utf8') as fp:
             for comment in tqdm(generator, total=total):
+                if args.min_length is not None and len(comment['text']) < args.min_length:
+                    continue
                 comment_str = (
                     json.dumps(comment, ensure_ascii=False, indent=None)
                     if args.template is None
@@ -66,6 +71,7 @@ def main(argv = None):
                 comment_str = comment_str.decode('utf-8') if isinstance(comment_str, bytes) else comment_str
                 print(comment_str, file=fp)
                 count += 1
+            print(f"{count} comments of {'any' if args.min_length is None else args.min_length} length", file=fp)
         print('\n[{:.2f} seconds] Done!'.format(time.time() - start_time), file=sys.stderr)
 
     except Exception as e:

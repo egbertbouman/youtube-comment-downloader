@@ -45,7 +45,7 @@ class YoutubeCommentDownloader:
     def get_comments(self, youtube_id, *args, **kwargs):
         return self.get_comments_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), *args, **kwargs)
 
-    def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1):
+    def get_comments_from_url(self, youtube_url, sort_by=SORT_BY_RECENT, language=None, sleep=.1, limit=-1):
         response = self.session.get(youtube_url)
 
         if 'consent' in str(response.url):
@@ -129,8 +129,11 @@ class YoutubeCommentDownloader:
                 )
                 if paid:
                     result['paid'] = paid
-
                 yield result
+                limit -= 1
+                if limit == 0:
+                    continuations.clear()
+                    break
             time.sleep(sleep)
 
     @staticmethod

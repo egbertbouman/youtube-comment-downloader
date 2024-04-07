@@ -105,16 +105,23 @@ class YoutubeCommentDownloader:
                         # Process the 'Show more replies' button
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
 
-            for comment in reversed(list(self.search_dict(response, 'commentRenderer'))):
-                result = {'cid': comment['commentId'],
-                          'text': ''.join([c['text'] for c in comment['contentText'].get('runs', [])]),
-                          'time': comment['publishedTimeText']['runs'][0]['text'],
-                          'author': comment.get('authorText', {}).get('simpleText', ''),
-                          'channel': comment['authorEndpoint']['browseEndpoint'].get('browseId', ''),
-                          'votes': comment.get('voteCount', {}).get('simpleText', '0'),
-                          'photo': comment['authorThumbnail']['thumbnails'][-1]['url'],
-                          'heart': next(self.search_dict(comment, 'isHearted'), False),
-                          'reply': '.' in comment['commentId']}
+            toolbar_payloads = self.search_dict(response, 'engagementToolbarStateEntityPayload')
+            toolbar_states = {payloads['key']:payloads for payloads in toolbar_payloads}
+            for comment in reversed(list(self.search_dict(response, 'commentEntityPayload'))):
+                properties = comment['properties']
+                author = comment['author']
+                toolbar = comment['toolbar']
+                toolbar_state = toolbar_states[properties['toolbarStateKey']]
+                result = {'cid': properties['commentId'],
+                          'text': properties['content']['content'],
+                          'time': properties['publishedTime'],
+                          'author': author['displayName'],
+                          'channel': author['channelId'],
+                          'votes': toolbar['likeCountLiked'],
+                          'replies': toolbar['replyCount'],
+                          'photo': author['avatarThumbnailUrl'],
+                          'heart': toolbar_state.get('heartState', '') == 'TOOLBAR_HEART_STATE_HEARTED',
+                          'reply': '.' in properties['commentId']}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()

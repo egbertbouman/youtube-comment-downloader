@@ -105,14 +105,25 @@ class YoutubeCommentDownloader:
                         # Process the 'Show more replies' button
                         continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
 
+            surface_payloads = self.search_dict(response, 'commentSurfaceEntityPayload')
+            payments = {payload['key']: next(self.search_dict(payload, 'simpleText'), '')
+                        for payload in surface_payloads if 'pdgCommentChip' in payload}
+            if payments:
+                # We need to map the payload keys to the comment IDs.
+                view_models = [vm['commentViewModel'] for vm in self.search_dict(response, 'commentViewModel')]
+                surface_keys = {vm['commentSurfaceKey']: vm['commentId']
+                                for vm in view_models if 'commentSurfaceKey' in vm}
+                payments = {surface_keys[key]: payment for key, payment in payments.items() if key in surface_keys}
+
             toolbar_payloads = self.search_dict(response, 'engagementToolbarStateEntityPayload')
-            toolbar_states = {payloads['key']:payloads for payloads in toolbar_payloads}
+            toolbar_states = {payload['key']: payload for payload in toolbar_payloads}
             for comment in reversed(list(self.search_dict(response, 'commentEntityPayload'))):
                 properties = comment['properties']
+                cid = properties['commentId']
                 author = comment['author']
                 toolbar = comment['toolbar']
                 toolbar_state = toolbar_states[properties['toolbarStateKey']]
-                result = {'cid': properties['commentId'],
+                result = {'cid': cid,
                           'text': properties['content']['content'],
                           'time': properties['publishedTime'],
                           'author': author['displayName'],
@@ -121,21 +132,15 @@ class YoutubeCommentDownloader:
                           'replies': toolbar['replyCount'],
                           'photo': author['avatarThumbnailUrl'],
                           'heart': toolbar_state.get('heartState', '') == 'TOOLBAR_HEART_STATE_HEARTED',
-                          'reply': '.' in properties['commentId']}
+                          'reply': '.' in cid}
 
                 try:
                     result['time_parsed'] = dateparser.parse(result['time'].split('(')[0].strip()).timestamp()
                 except AttributeError:
                     pass
 
-                paid = (
-                    comment.get('paidCommentChipRenderer', {})
-                    .get('pdgCommentChipRenderer', {})
-                    .get('chipText', {})
-                    .get('simpleText')
-                )
-                if paid:
-                    result['paid'] = paid
+                if cid in payments:
+                    result['paid'] = payments[cid]
 
                 yield result
             time.sleep(sleep)

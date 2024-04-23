@@ -128,7 +128,7 @@ class YoutubeCommentDownloader:
                           'time': properties['publishedTime'],
                           'author': author['displayName'],
                           'channel': author['channelId'],
-                          'votes': toolbar['likeCountLiked'],
+                          'votes': toolbar['likeCountNotliked'].strip() or 0,
                           'replies': toolbar['replyCount'],
                           'photo': author['avatarThumbnailUrl'],
                           'heart': toolbar_state.get('heartState', '') == 'TOOLBAR_HEART_STATE_HEARTED',

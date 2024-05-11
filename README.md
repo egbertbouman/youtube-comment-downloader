@@ -46,15 +46,63 @@ For Youtube IDs starting with - (dash) you will need to run the script with:
 `-y=idwithdash` or `--youtubeid=idwithdash`
 
 
-### Usage as library
-You can also use this script as a library. For instance, if you want to print out the 10 most popular comments for a particular Youtube video you can do the following:
+### Usage as Python Library
+You can also use this script as a library. Here's example code that you can use
 
+1. For instance, if you want to print out the 10 most popular comments for a particular Youtube video you can do the following:
 
 ```python
 from itertools import islice
 from youtube_comment_downloader import *
 downloader = YoutubeCommentDownloader()
-comments = downloader.get_comments_from_url('https://www.youtube.com/watch?v=ScMzIvxBSi4', sort_by=SORT_BY_POPULAR)
+youtube_url = 'https://www.youtube.com/watch?v=ScMzIvxBSi4' # Change this to a youtube link to the video you want to download the comment
+comments = downloader.get_comments_from_url(youtube_url, sort_by=SORT_BY_POPULAR)
 for comment in islice(comments, 10):
     print(comment)
 ```
+
+2. Script for download the comments as excel or csv file. 
+
+```python
+# Initiate Library
+import pandas as pd
+from youtube_comment_downloader import *
+
+# Initiate Downloader and Youtube_url
+downloader = YoutubeCommentDownloader()
+Youtube_URL = 'https://www.youtube.com/watch?v=ScMzIvxBSi4' # Change this to a youtube link to the video you want to download the comment
+comments = downloader.get_comments_from_url(Youtube_URL, sort_by=SORT_BY_POPULAR)
+
+# Initiate a dictionary to save all comments from Youtube Video
+all_comments_dict = {
+    'cid': [],
+    'text': [],
+    'time': [],
+    'author': [],
+    'channel': [],
+    'votes': [],
+    'replies': [],
+    'photo': [],
+    'heart': [],
+    'reply': [],
+    'time_parsed': []
+}
+
+# Take all comment and save it in dictionary using for loop
+for comment in comments:
+    for key in all_comments_dict.keys():
+        all_comments_dict[key].append(comment[key])
+
+# Convert Dictionary to Dataframe using Pandas
+comments_df = pd.DataFrame(all_comments_dict)
+
+# Display Dataframe
+display(comments_df)
+
+# Uncomment this if you want to save in excel format
+# comments_df.to_excel('comments_data.xlsx', index=False)
+
+# Uncomment this if you want to sve in csv format
+# comments_df.to_csv('comments_data.csv', index=False)
+```
+   

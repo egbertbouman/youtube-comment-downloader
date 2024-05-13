@@ -27,20 +27,22 @@ class YoutubeCommentDownloader:
         self.session.headers['User-Agent'] = USER_AGENT
         self.session.cookies.set('CONSENT', 'YES+cb', domain='.youtube.com')
 
-    def ajax_request(self, endpoint, ytcfg, retries=5, sleep=20):
+    def ajax_request(self, endpoint, ytcfg, retries=5, sleep=20, timeout=60):
         url = 'https://www.youtube.com' + endpoint['commandMetadata']['webCommandMetadata']['apiUrl']
 
         data = {'context': ytcfg['INNERTUBE_CONTEXT'],
                 'continuation': endpoint['continuationCommand']['token']}
 
         for _ in range(retries):
-            response = self.session.post(url, params={'key': ytcfg['INNERTUBE_API_KEY']}, json=data)
-            if response.status_code == 200:
-                return response.json()
-            if response.status_code in [403, 413]:
-                return {}
-            else:
-                time.sleep(sleep)
+            try:
+                response = self.session.post(url, params={'key': ytcfg['INNERTUBE_API_KEY']}, json=data, timeout=timeout)
+                if response.status_code == 200:
+                    return response.json()
+                if response.status_code in [403, 413]:
+                    return {}
+            except requests.exceptions.Timeout:
+                pass
+            time.sleep(sleep)
 
     def get_comments(self, youtube_id, *args, **kwargs):
         return self.get_comments_from_url(YOUTUBE_VIDEO_URL.format(youtube_id=youtube_id), *args, **kwargs)

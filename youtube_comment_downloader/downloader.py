@@ -94,18 +94,14 @@ class YoutubeCommentDownloader:
             if error:
                 raise RuntimeError('Error returned from server: ' + error)
 
-            actions = list(self.search_dict(response, 'reloadContinuationItemsCommand')) + \
-                      list(self.search_dict(response, 'appendContinuationItemsAction'))
-            for action in actions:
-                for item in action.get('continuationItems', []):
-                    if action['targetId'] in ['comments-section',
-                                              'engagement-panel-comments-section',
-                                              'shorts-engagement-panel-comments-section']:
-                        # Process continuations for comments and replies.
-                        continuations[:0] = [ep for ep in self.search_dict(item, 'continuationEndpoint')]
-                    if action['targetId'].startswith('comment-replies-item') and 'continuationItemRenderer' in item:
-                        # Process the 'Show more replies' button
-                        continuations.append(next(self.search_dict(item, 'buttonRenderer'))['command'])
+            # Pull continuation tokens regardless of response type or targetId structure
+            for ep in self.search_dict(response, 'continuationEndpoint'):
+                if ep not in continuations:
+                    continuations.append(ep)
+
+            for button in self.search_dict(response, 'buttonRenderer'):
+                if 'command' in button and button['command'] not in continuations:
+                    continuations.append(button['command'])
 
             surface_payloads = self.search_dict(response, 'commentSurfaceEntityPayload')
             payments = {payload['key']: next(self.search_dict(payload, 'simpleText'), '')
